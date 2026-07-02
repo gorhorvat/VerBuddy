@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(dotnet test Backend.Tests\\\\Backend.Tests.csproj -v q --nologo 2>&1)",
+      "PowerShell(dotnet test Backend.Tests\\\\Backend.Tests.csproj --nologo --filter \"FullyQualifiedName~TeacherLogin\" 2>&1)",
+      "PowerShell($dirs = Get-ChildItem \"$env:USERPROFILE\\\\.claude\\\\skills\" -Directory; $withManifest = \\($dirs | Where-Object { Test-Path \\(Join-Path $_.FullName 'SKILL.md'\\) }\\).Count; Write-Output \"Folders: $\\($dirs.Count\\), with SKILL.md: $withManifest\")",
+      "Bash(curl -fsSL https://raw.githubusercontent.com/JuliusBrussee/caveman/main/install.sh)",
+      "Bash(curl -fsSL https://raw.githubusercontent.com/JuliusBrussee/caveman/main/bin/install.js)",
+      "Bash(npx -y github:JuliusBrussee/caveman --dry-run --non-interactive --no-color)",
+      "Bash(npx -y github:JuliusBrussee/caveman --non-interactive --no-color)",
+      "PowerShell(Get-ChildItem \"c:\\\\Users\\\\gorho\\\\SPM Interactive\\\\.NET Projects\\\\VerBuddy\\\\Frontend\\\\src\" -Recurse -File | Select-Object -ExpandProperty FullName | ForEach-Object { $_.Replace\\('c:\\\\Users\\\\gorho\\\\SPM Interactive\\\\.NET Projects\\\\VerBuddy\\\\Frontend\\\\src\\\\',''\\) })",
+      "Bash(sqlcmd -S \"\\(localdb\\)\\\\MSSQLLocalDB\" -Q \"SELECT name FROM sys.databases\" -h -1)",
+      "Bash(sqlcmd -S \"\\(localdb\\)\\\\MSSQLLocalDB\" -Q \"ALTER DATABASE [EnglishLearningApp] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; ALTER DATABASE [EnglishLearningApp] MODIFY NAME = [VerBuddy]; ALTER DATABASE [VerBuddy] SET MULTI_USER; ALTER DATABASE [EnglishLearningApp_Tests] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; ALTER DATABASE [EnglishLearningApp_Tests] MODIFY NAME = [VerBuddy_Tests]; ALTER DATABASE [VerBuddy_Tests] SET MULTI_USER;\")",
+      "Bash(sqlcmd -S \"\\(localdb\\)\\\\MSSQLLocalDB\" -Q \"SELECT name FROM sys.databases WHERE name LIKE '%VerBuddy%' OR name LIKE '%English%'\" -h -1)"
+    ]
+  }
+}

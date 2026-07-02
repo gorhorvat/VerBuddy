@@ -1,0 +1,15 @@
+# .NET Build artifacts
+**/bin/
+**/obj/
+
+# Node/React dependencies
+**/node_modules/
+Frontend/dist/
+
+# Local configuration files
+*.user
+appsettings.Development.json
+.env
+
+# Dev email pickup directory (contains plaintext credentials)
+Backend/App_Data/
