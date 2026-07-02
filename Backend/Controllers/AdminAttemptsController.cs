@@ -15,7 +15,7 @@ namespace Backend.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/admin/attempts")]
-[Authorize(Roles = AppRoles.Teacher)]
+[Authorize(Roles = AppRoles.AdminOrSuperAdmin)]
 public class AdminAttemptsController(AppDbContext db) : ControllerBase
 {
     private string TeacherId => User.FindFirstValue(ClaimTypes.NameIdentifier)!;

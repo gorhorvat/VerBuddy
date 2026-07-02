@@ -25,7 +25,7 @@ public class LeaderboardController(
     [HttpGet]
     public async Task<ActionResult<LeaderboardsDto>> Get()
     {
-        var students = (await userManager.GetUsersInRoleAsync(AppRoles.Student))
+        var students = (await userManager.GetUsersInRoleAsync(AppRoles.User))
             .Where(s => s.IsActive)
             .OrderByDescending(s => s.TotalXp)
             .ThenBy(s => s.DisplayName)

@@ -17,6 +17,19 @@ public static class DbSeeder
     {
         await db.Database.MigrateAsync();
 
+        // ── Legacy role rename (Teacher→Admin, Student→User) ──────────────
+        // In-place rename keeps existing user-role assignments, which
+        // reference the role Id, not its name.
+        foreach (var (oldName, newName) in new[] { ("Teacher", AppRoles.Admin), ("Student", AppRoles.User) })
+        {
+            var legacy = await roleManager.FindByNameAsync(oldName);
+            if (legacy is not null && await roleManager.FindByNameAsync(newName) is null)
+            {
+                await roleManager.SetRoleNameAsync(legacy, newName);
+                await roleManager.UpdateAsync(legacy); // Persists Name + NormalizedName.
+            }
+        }
+
         // ── Roles ──────────────────────────────────────────────────────────
         foreach (var role in AppRoles.All)
         {
@@ -39,7 +52,7 @@ public static class DbSeeder
             };
             await userManager.CreateAsync(teacher, "ChangeMe!123");
         }
-        if (!await userManager.IsInRoleAsync(teacher, AppRoles.Teacher))
-            await userManager.AddToRoleAsync(teacher, AppRoles.Teacher);
+        if (!await userManager.IsInRoleAsync(teacher, AppRoles.Admin))
+            await userManager.AddToRoleAsync(teacher, AppRoles.Admin);
     }
 }

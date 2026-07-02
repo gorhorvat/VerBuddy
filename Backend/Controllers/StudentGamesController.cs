@@ -17,7 +17,7 @@ namespace Backend.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/student/games")]
-[Authorize(Roles = AppRoles.Student)]
+[Authorize(Roles = AppRoles.User)]
 public class StudentGamesController(AppDbContext db) : ControllerBase
 {
     private static readonly JsonSerializerOptions JsonOptions =

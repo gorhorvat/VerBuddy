@@ -15,7 +15,7 @@ namespace Backend.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/admin/categories")]
-[Authorize(Roles = AppRoles.Teacher)]
+[Authorize(Roles = AppRoles.AdminOrSuperAdmin)]
 public class AdminCategoriesController(AppDbContext db) : ControllerBase
 {
     private string TeacherId => User.FindFirstValue(ClaimTypes.NameIdentifier)!;

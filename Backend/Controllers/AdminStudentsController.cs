@@ -20,7 +20,7 @@ namespace Backend.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/admin/students")]
-[Authorize(Roles = AppRoles.Teacher)]
+[Authorize(Roles = AppRoles.AdminOrSuperAdmin)]
 public class AdminStudentsController(
     AppDbContext db,
     UserManager<ApplicationUser> userManager,
@@ -31,7 +31,7 @@ public class AdminStudentsController(
     [HttpGet]
     public async Task<ActionResult<List<StudentAdminDto>>> List()
     {
-        var students = await userManager.GetUsersInRoleAsync(AppRoles.Student);
+        var students = await userManager.GetUsersInRoleAsync(AppRoles.User);
         var categoryNames = await db.Categories.ToDictionaryAsync(c => c.Id, c => c.Name);
 
         return students
@@ -212,7 +212,7 @@ public class AdminStudentsController(
     private async Task<ApplicationUser?> FindStudentAsync(string id)
     {
         var user = await userManager.FindByIdAsync(id);
-        if (user is null || !await userManager.IsInRoleAsync(user, AppRoles.Student))
+        if (user is null || !await userManager.IsInRoleAsync(user, AppRoles.User))
             return null;
         return user;
     }
@@ -251,7 +251,7 @@ public class AdminStudentsController(
         if (!result.Succeeded)
             return (null, (HttpStatusCode.BadRequest, string.Join(' ', result.Errors.Select(e => e.Description))));
 
-        await userManager.AddToRoleAsync(student, AppRoles.Student);
+        await userManager.AddToRoleAsync(student, AppRoles.User);
         return (student, null);
     }
 

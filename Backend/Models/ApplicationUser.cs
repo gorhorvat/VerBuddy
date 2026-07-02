@@ -7,7 +7,7 @@ namespace Backend.Models;
 ///
 /// GDPR data-minimization contract:
 ///  - <see cref="FirstName"/>, <see cref="LastName"/> and the inherited Email are PII and may
-///    ONLY be projected into teacher/admin DTOs and endpoints ([Authorize(Roles = "Teacher")]).
+///    ONLY be projected into admin DTOs and endpoints ([Authorize(Roles = "Admin,SuperAdmin")]).
 ///  - <see cref="DisplayName"/> is the ONLY identity field allowed in student-facing payloads
 ///    (leaderboard, peer metrics, attempt feedback).
 ///  - The inherited UserName is used exclusively for login authentication and is never

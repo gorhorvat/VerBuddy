@@ -14,7 +14,7 @@ public class AuthAndGdprTests(ApiFactory factory)
         var auth = await factory.LoginAsync(TeacherUsername, TeacherPassword);
 
         Assert.NotEmpty(auth.Token);
-        Assert.Contains("Teacher", auth.Roles);
+        Assert.Contains("Admin", auth.Roles);
         Assert.False(auth.MustChangePassword);
     }
 
