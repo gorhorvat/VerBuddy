@@ -1,6 +1,8 @@
 using Backend.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 
 namespace Backend.Data;
 
@@ -13,7 +15,9 @@ public static class DbSeeder
     public static async Task SeedAsync(
         AppDbContext db,
         UserManager<ApplicationUser> userManager,
-        RoleManager<IdentityRole> roleManager)
+        RoleManager<IdentityRole> roleManager,
+        IConfiguration configuration,
+        ILogger? logger = null)
     {
         await db.Database.MigrateAsync();
 
@@ -54,5 +58,33 @@ public static class DbSeeder
         }
         if (!await userManager.IsInRoleAsync(teacher, AppRoles.Admin))
             await userManager.AddToRoleAsync(teacher, AppRoles.Admin);
+
+        // ── SuperAdmin (from configuration — never hardcoded) ─────────────
+        var superUsername = configuration["SuperAdmin:UserName"];
+        var superPassword = configuration["SuperAdmin:Password"];
+        if (string.IsNullOrWhiteSpace(superUsername) || string.IsNullOrWhiteSpace(superPassword))
+        {
+            logger?.LogWarning(
+                "SuperAdmin:UserName / SuperAdmin:Password are not configured — no SuperAdmin account was seeded.");
+            return;
+        }
+
+        var super = await userManager.FindByNameAsync(superUsername);
+        if (super is null)
+        {
+            super = new ApplicationUser
+            {
+                UserName = superUsername,
+                Email = configuration["SuperAdmin:Email"],
+                DisplayName = "Super Admin",
+                EmailConfirmed = true
+            };
+            var created = await userManager.CreateAsync(super, superPassword);
+            if (!created.Succeeded)
+                throw new InvalidOperationException(
+                    "SuperAdmin seeding failed: " + string.Join(' ', created.Errors.Select(e => e.Description)));
+        }
+        if (!await userManager.IsInRoleAsync(super, AppRoles.SuperAdmin))
+            await userManager.AddToRoleAsync(super, AppRoles.SuperAdmin);
     }
 }

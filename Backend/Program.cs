@@ -80,7 +80,9 @@ if (app.Environment.IsDevelopment())
     await DbSeeder.SeedAsync(
         scope.ServiceProvider.GetRequiredService<AppDbContext>(),
         scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>(),
-        scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>());
+        scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>(),
+        app.Configuration,
+        app.Logger);
 }
 
 app.UseHttpsRedirection();

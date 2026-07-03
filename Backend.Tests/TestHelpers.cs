@@ -21,6 +21,9 @@ public static class TestHelpers
     public const string TeacherUsername = "teacher.anna";
     public const string TeacherPassword = "ChangeMe!123";
 
+    public const string SuperAdminUsername = "superadmin";
+    public const string SuperAdminPassword = "Super!Pass123";
+
     public static string Unique(string prefix) =>
         $"{prefix}.{Guid.NewGuid():N}"[..Math.Min(30, prefix.Length + 25)];
 
@@ -37,6 +40,12 @@ public static class TestHelpers
     public static async Task<HttpClient> TeacherClientAsync(this ApiFactory factory)
     {
         var auth = await factory.LoginAsync(TeacherUsername, TeacherPassword);
+        return factory.ClientWithToken(auth.Token);
+    }
+
+    public static async Task<HttpClient> SuperAdminClientAsync(this ApiFactory factory)
+    {
+        var auth = await factory.LoginAsync(SuperAdminUsername, SuperAdminPassword);
         return factory.ClientWithToken(auth.Token);
     }
 

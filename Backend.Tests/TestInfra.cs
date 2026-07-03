@@ -58,6 +58,9 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         builder.UseSetting("Jwt:Audience", "VerBuddy.Tests.Client");
         builder.UseSetting("Jwt:ExpiryMinutes", "60");
         builder.UseSetting("Frontend:BaseUrl", "http://localhost:5173");
+        builder.UseSetting("SuperAdmin:UserName", "superadmin");
+        builder.UseSetting("SuperAdmin:Email", "superadmin@test.local");
+        builder.UseSetting("SuperAdmin:Password", "Super!Pass123");
 
         builder.ConfigureServices(services =>
         {
@@ -74,7 +77,8 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         await DbSeeder.SeedAsync( // Migrates, then seeds roles + accounts + sample game.
             db,
             scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>(),
-            scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>());
+            scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>(),
+            scope.ServiceProvider.GetRequiredService<IConfiguration>());
     }
 
     Task IAsyncLifetime.DisposeAsync() => Task.CompletedTask;
