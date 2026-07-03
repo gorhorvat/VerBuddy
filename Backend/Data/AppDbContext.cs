@@ -30,6 +30,15 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             // Leaderboard reads sort by TotalXp.
             user.HasIndex(u => u.TotalXp);
 
+            // Ownership scoping column. Deliberately NOT a FK constraint: a
+            // self-referencing FK on AspNetUsers collides with the cascade
+            // paths ASP.NET Identity already wires up for its own join tables
+            // (UserRoles/UserClaims/UserLogins/UserTokens), which SQL Server
+            // rejects as "may cause cycles or multiple cascade paths". The id
+            // is still indexed for the roster-scoping query.
+            user.Property(u => u.CreatedByAdminId).HasMaxLength(450);
+            user.HasIndex(u => u.CreatedByAdminId);
+
             // A student may belong to any number of classes (categories), via an
             // explicit join table so both FKs can cascade-delete cleanly.
             user.HasMany(u => u.Categories)
@@ -130,6 +139,14 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
         {
             reward.Property(r => r.Title).IsRequired().HasMaxLength(200);
             reward.Property(r => r.Description).HasMaxLength(1000);
+            reward.Property(r => r.CreatedById).IsRequired().HasMaxLength(450);
+
+            // Restrict: mirrors Category.TeacherId — an admin with rewards on
+            // file can't be hard-deleted out from under them.
+            reward.HasOne<ApplicationUser>()
+                .WithMany()
+                .HasForeignKey(r => r.CreatedById)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         builder.Entity<RewardApplication>(application =>

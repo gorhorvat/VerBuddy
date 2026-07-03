@@ -28,6 +28,14 @@ public class Reward
     [Range(0, 99)]
     public int RequiredLevel { get; set; }
 
+    /// <summary>
+    /// The admin (Admin or SuperAdmin) who created this reward. Ownership
+    /// scoping boundary: an Admin sees/manages only rewards they created;
+    /// students see only rewards created by their own teacher (matched via
+    /// <see cref="ApplicationUser.CreatedByAdminId"/>); SuperAdmin sees all.
+    /// </summary>
+    public string CreatedById { get; set; } = null!;
+
     public ICollection<RewardApplication> Applications { get; set; } = new List<RewardApplication>();
 }
 

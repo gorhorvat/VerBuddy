@@ -50,6 +50,15 @@ public class ApplicationUser : IdentityUser
     /// <summary>Deactivated accounts cannot log in but keep their history.</summary>
     public bool IsActive { get; set; } = true;
 
+    /// <summary>
+    /// The admin (Admin or SuperAdmin) who created this account. Ownership
+    /// scoping boundary: an Admin's student roster is filtered to accounts
+    /// they created; SuperAdmin sees everything. Null for legacy accounts
+    /// predating this field (backfilled at migration time) — never null for
+    /// accounts created after this feature shipped.
+    /// </summary>
+    public string? CreatedByAdminId { get; set; }
+
     // ── Navigation ────────────────────────────────────────────────────────
     public ICollection<GameInstance> CreatedGames { get; set; } = new List<GameInstance>();
     public ICollection<StudentAttempt> Attempts { get; set; } = new List<StudentAttempt>();

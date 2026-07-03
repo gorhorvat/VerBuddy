@@ -106,6 +106,12 @@ public static class TestHelpers
         return factory.ClientWithToken(auth.Token);
     }
 
+    public static async Task<HttpClient> AdminClientAsync(this ApiFactory factory, TestAdmin admin)
+    {
+        var auth = await factory.LoginAsync(admin.Username, admin.Password);
+        return factory.ClientWithToken(auth.Token);
+    }
+
     /// <summary>
     /// Admin account flow: create (no password) → activate (email captured) →
     /// first login with the temp password → change to a known password.

@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Backend.Data;
 using Backend.DTOs;
 using Backend.Models;
@@ -9,17 +10,26 @@ namespace Backend.Controllers;
 
 /// <summary>
 /// Teacher-only reward catalog management and the application review queue.
-/// Rewards are global (not filed by class) — every student sees the same list.
+/// Rewards are scoped to the admin who created them: an Admin sees/manages
+/// only their own rewards and the applications filed against them; SuperAdmin
+/// sees everything.
 /// </summary>
 [ApiController]
 [Route("api/admin/rewards")]
 [Authorize(Roles = AppRoles.AdminOrSuperAdmin)]
 public class AdminRewardsController(AppDbContext db) : ControllerBase
 {
+    private string CallerId => User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+    private bool IsSuperAdmin => User.IsInRole(AppRoles.SuperAdmin);
+
     [HttpGet]
     public async Task<ActionResult<List<RewardDto>>> List()
     {
-        var rewards = await db.Rewards.OrderBy(r => r.RequiredLevel).ToListAsync();
+        var query = db.Rewards.AsQueryable();
+        if (!IsSuperAdmin)
+            query = query.Where(r => r.CreatedById == CallerId);
+
+        var rewards = await query.OrderBy(r => r.RequiredLevel).ToListAsync();
         return rewards.Select(ToDto).ToList();
     }
 
@@ -30,7 +40,8 @@ public class AdminRewardsController(AppDbContext db) : ControllerBase
         {
             Title = request.Title,
             Description = request.Description,
-            RequiredLevel = request.RequiredLevel
+            RequiredLevel = request.RequiredLevel,
+            CreatedById = CallerId
         };
 
         db.Rewards.Add(reward);
@@ -42,7 +53,7 @@ public class AdminRewardsController(AppDbContext db) : ControllerBase
     [HttpPut("{id:int}")]
     public async Task<ActionResult<RewardDto>> Update(int id, RewardRequest request)
     {
-        var reward = await db.Rewards.FindAsync(id);
+        var reward = await FindRewardAsync(id);
         if (reward is null)
             return NotFound();
 
@@ -57,7 +68,7 @@ public class AdminRewardsController(AppDbContext db) : ControllerBase
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id)
     {
-        var reward = await db.Rewards.FindAsync(id);
+        var reward = await FindRewardAsync(id);
         if (reward is null)
             return NotFound();
 
@@ -74,6 +85,8 @@ public class AdminRewardsController(AppDbContext db) : ControllerBase
             .Include(a => a.Reward)
             .Include(a => a.Student)
             .AsQueryable();
+        if (!IsSuperAdmin)
+            query = query.Where(a => a.Reward.CreatedById == CallerId);
         if (status is not null)
             query = query.Where(a => a.Status == status);
 
@@ -89,14 +102,57 @@ public class AdminRewardsController(AppDbContext db) : ControllerBase
     public Task<ActionResult<RewardApplicationDto>> Deny(int id) =>
         DecideAsync(id, RewardApplicationStatus.Denied);
 
+    /// <summary>
+    /// Pulls back an already-approved reward — e.g. a mistaken approval or a
+    /// student who no longer qualifies. Only an Approved application can be
+    /// revoked; the resulting Denied status lets the student re-apply.
+    /// </summary>
+    [HttpPost("applications/{id:int}/revoke")]
+    public async Task<ActionResult<RewardApplicationDto>> Revoke(int id)
+    {
+        var application = await FindApplicationAsync(id);
+        if (application is null)
+            return NotFound();
+        if (application.Status != RewardApplicationStatus.Approved)
+            return Conflict(new { message = "Only an approved application can be revoked." });
+
+        application.Status = RewardApplicationStatus.Denied;
+        application.DecidedAtUtc = DateTime.UtcNow;
+        await db.SaveChangesAsync();
+
+        return ToApplicationDto(application);
+    }
+
     // ─── Helpers ───────────────────────────────────────────────────────────
 
-    private async Task<ActionResult<RewardApplicationDto>> DecideAsync(int id, RewardApplicationStatus decision)
+    /// <summary>Rewards created by the caller — SuperAdmin may reach any.</summary>
+    private async Task<Reward?> FindRewardAsync(int id)
+    {
+        var reward = await db.Rewards.FindAsync(id);
+        if (reward is null)
+            return null;
+        if (!IsSuperAdmin && reward.CreatedById != CallerId)
+            return null;
+        return reward;
+    }
+
+    /// <summary>Applications against rewards the caller created — SuperAdmin may reach any.</summary>
+    private async Task<RewardApplication?> FindApplicationAsync(int id)
     {
         var application = await db.RewardApplications
             .Include(a => a.Reward)
             .Include(a => a.Student)
             .FirstOrDefaultAsync(a => a.Id == id);
+        if (application is null)
+            return null;
+        if (!IsSuperAdmin && application.Reward.CreatedById != CallerId)
+            return null;
+        return application;
+    }
+
+    private async Task<ActionResult<RewardApplicationDto>> DecideAsync(int id, RewardApplicationStatus decision)
+    {
+        var application = await FindApplicationAsync(id);
         if (application is null)
             return NotFound();
         if (application.Status != RewardApplicationStatus.Pending)

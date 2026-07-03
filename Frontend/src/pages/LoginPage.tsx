@@ -31,7 +31,7 @@ export default function LoginPage() {
       <Card className="relative w-full max-w-sm">
         <div className="mb-6 text-center">
           <img
-            src="/verbuddy-logo.png"
+            src="/verbuddy-logo-transparent.png"
             alt="VerBuddy"
             className="mx-auto w-56 max-w-full"
           />

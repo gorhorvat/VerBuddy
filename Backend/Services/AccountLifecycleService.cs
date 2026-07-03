@@ -28,7 +28,7 @@ public sealed class AccountLifecycleService(
     /// </summary>
     public async Task<(ApplicationUser? User, (HttpStatusCode Status, string Message)? Error)> CreateAccountAsync(
         string role, string username, string? firstName, string? lastName,
-        string? email, string? displayName, List<int>? categoryIds = null)
+        string? email, string? displayName, List<int>? categoryIds = null, string? createdByAdminId = null)
     {
         displayName = displayName?.Trim();
         if (string.IsNullOrEmpty(displayName))
@@ -53,7 +53,8 @@ public sealed class AccountLifecycleService(
             LastName = lastName,
             DisplayName = displayName,
             Categories = categories,
-            EmailConfirmed = true // No email round-trip for provisioned accounts.
+            EmailConfirmed = true, // No email round-trip for provisioned accounts.
+            CreatedByAdminId = createdByAdminId
         };
 
         // No password: the account is unusable until activated.

@@ -19,6 +19,7 @@ namespace Backend.Controllers;
 [Route("api/superadmin/admins")]
 [Authorize(Roles = AppRoles.SuperAdmin)]
 public class AdminsController(
+    Data.AppDbContext db,
     UserManager<ApplicationUser> userManager,
     AccountLifecycleService lifecycle) : ControllerBase
 {
@@ -152,6 +153,10 @@ public class AdminsController(
         var admin = await FindAdminAsync(id);
         if (admin is null)
             return NotFound();
+
+        // The admin's rewards go with the account (applications cascade with
+        // the reward); the Restrict FK would otherwise block the delete.
+        await db.Rewards.Where(r => r.CreatedById == id).ExecuteDeleteAsync();
 
         await userManager.DeleteAsync(admin);
         return NoContent();

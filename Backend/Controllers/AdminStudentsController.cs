@@ -27,11 +27,19 @@ public class AdminStudentsController(
     UserManager<ApplicationUser> userManager,
     AccountLifecycleService lifecycle) : ControllerBase
 {
-    /// <summary>All student accounts with their PII, for the admin panel roster.</summary>
+    /// <summary>
+    /// Student accounts with their PII, for the admin panel roster. Scoped to
+    /// students the caller created — SuperAdmin sees every student.
+    /// </summary>
     [HttpGet]
     public async Task<ActionResult<List<StudentAdminDto>>> List()
     {
         var students = await userManager.GetUsersInRoleAsync(AppRoles.User);
+        if (!User.IsInRole(AppRoles.SuperAdmin))
+        {
+            var callerId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+            students = students.Where(s => s.CreatedByAdminId == callerId).ToList();
+        }
         var ids = students.Select(s => s.Id).ToList();
 
         var categoriesByStudent = await db.Users
@@ -245,10 +253,19 @@ public class AdminStudentsController(
 
     // ─── Helpers ───────────────────────────────────────────────────────────
 
+    /// <summary>
+    /// Student-role accounts only, further scoped to ones the caller created
+    /// — SuperAdmin may reach any. A foreign student (another admin's, or
+    /// SuperAdmin-created) is treated as not found so it never leaks via 404
+    /// vs 403 distinction.
+    /// </summary>
     private async Task<ApplicationUser?> FindStudentAsync(string id)
     {
         var user = await userManager.FindByIdAsync(id);
         if (user is null || !await userManager.IsInRoleAsync(user, AppRoles.User))
+            return null;
+        if (!User.IsInRole(AppRoles.SuperAdmin)
+            && user.CreatedByAdminId != User.FindFirstValue(ClaimTypes.NameIdentifier))
             return null;
         return user;
     }
@@ -260,8 +277,9 @@ public class AdminStudentsController(
         if (!await ValidCategoryIdsAsync(categoryIds))
             return (null, (HttpStatusCode.BadRequest, "Unknown category."));
 
+        var callerId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
         return await lifecycle.CreateAccountAsync(
-            AppRoles.User, username, firstName, lastName, email, displayName, categoryIds);
+            AppRoles.User, username, firstName, lastName, email, displayName, categoryIds, callerId);
     }
 
     /// <summary>

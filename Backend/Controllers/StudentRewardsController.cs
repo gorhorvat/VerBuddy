@@ -31,7 +31,13 @@ public class StudentRewardsController(AppDbContext db) : ControllerBase
 
         var level = LevelSystem.LevelForXp(student.TotalXp);
 
-        var rewards = await db.Rewards.OrderBy(r => r.RequiredLevel).ToListAsync();
+        // Only rewards created by this student's own teacher — a null owner
+        // (unassigned/legacy student) sees none; a SuperAdmin-created student
+        // sees the SuperAdmin's rewards, exactly as CreatedByAdminId dictates.
+        var rewards = await db.Rewards
+            .Where(r => r.CreatedById == student.CreatedByAdminId)
+            .OrderBy(r => r.RequiredLevel)
+            .ToListAsync();
         var myApplications = await db.RewardApplications
             .Where(a => a.StudentId == me)
             .OrderByDescending(a => a.CreatedAtUtc)
@@ -56,13 +62,15 @@ public class StudentRewardsController(AppDbContext db) : ControllerBase
     public async Task<ActionResult<StudentRewardDto>> Apply(int id)
     {
         var me = StudentId;
-        var reward = await db.Rewards.FindAsync(id);
-        if (reward is null)
-            return NotFound();
-
         var student = await db.Users.FindAsync(me);
         if (student is null)
             return Unauthorized();
+
+        // Foreign reward (another teacher's, or created by a different owner
+        // than this student's own admin) is treated as not found.
+        var reward = await db.Rewards.FindAsync(id);
+        if (reward is null || reward.CreatedById != student.CreatedByAdminId)
+            return NotFound();
 
         var level = LevelSystem.LevelForXp(student.TotalXp);
         if (level < reward.RequiredLevel)

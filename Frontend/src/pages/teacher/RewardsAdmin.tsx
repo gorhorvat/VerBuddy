@@ -36,6 +36,7 @@ export default function RewardsAdmin() {
   const [editId, setEditId] = useState<number | null>(null)
   const [form, setForm] = useState(emptyForm)
   const [deleteTarget, setDeleteTarget] = useState<Reward | null>(null)
+  const [revokeTarget, setRevokeTarget] = useState<RewardApplication | null>(null)
 
   const load = () =>
     Promise.all([
@@ -97,10 +98,13 @@ export default function RewardsAdmin() {
     })
   }
 
+  const revoke = (id: number) => run(() => api(`/api/admin/rewards/applications/${id}/revoke`, { method: 'POST' }))
+
   if (error && (!rewards || !applications)) return <ErrorText message={error} />
   if (!rewards || !applications) return <Spinner />
 
   const pending = applications.filter((a) => a.status === 'Pending')
+  const approved = applications.filter((a) => a.status === 'Approved')
   const decided = applications.filter((a) => a.status !== 'Pending')
 
   return (
@@ -186,6 +190,41 @@ export default function RewardsAdmin() {
             ))}
         </>
       )}
+
+      {/* ── Approved rewards ─────────────────────────────────────────────── */}
+      <h2 className="pt-2 text-sm font-bold uppercase tracking-wide text-slate-400">
+        Approved rewards {approved.length > 0 && `(${approved.length})`}
+      </h2>
+      {approved.length === 0 && (
+        <Card className="!py-3">
+          <p className="text-sm text-slate-500">No approved rewards yet.</p>
+        </Card>
+      )}
+      {approved.map((a) => {
+        const busy = busyIds.has(a.id)
+        return (
+          <Card key={a.id} className="flex flex-wrap items-center justify-between gap-3 !py-3">
+            <div className="min-w-0">
+              <p className="font-semibold">
+                {a.studentDisplayName}
+                <span className="font-normal text-slate-500"> · </span>
+                {a.rewardTitle}
+              </p>
+              <p className="text-xs text-slate-500">
+                {a.decidedAtUtc ? `Approved ${formatDate(a.decidedAtUtc)}` : 'Approved'}
+              </p>
+            </div>
+            <Button
+              variant="danger"
+              className="!px-4 !py-1.5 !text-sm"
+              disabled={busy}
+              onClick={() => setRevokeTarget(a)}
+            >
+              Revoke
+            </Button>
+          </Card>
+        )
+      })}
 
       {/* ── Reward catalogue ─────────────────────────────────────────────── */}
       <h2 className="pt-2 text-sm font-bold uppercase tracking-wide text-slate-400">Manage rewards</h2>
@@ -273,6 +312,19 @@ export default function RewardsAdmin() {
           const id = deleteTarget!.id
           setDeleteTarget(null)
           run(() => api(`/api/admin/rewards/${id}`, { method: 'DELETE' }))
+        }}
+      />
+
+      <ConfirmDialog
+        open={revokeTarget !== null}
+        title="Revoke reward?"
+        message={`${revokeTarget?.studentDisplayName} will lose access to "${revokeTarget?.rewardTitle}".`}
+        confirmLabel="Revoke reward"
+        onCancel={() => setRevokeTarget(null)}
+        onConfirm={() => {
+          const id = revokeTarget!.id
+          setRevokeTarget(null)
+          revoke(id)
         }}
       />
     </div>
