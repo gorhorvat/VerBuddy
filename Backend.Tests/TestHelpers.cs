@@ -11,6 +11,9 @@ namespace Backend.Tests;
 /// <summary>An activated student ready to log in with a known password.</summary>
 public sealed record TestStudent(string Id, string Username, string Password, string DisplayName);
 
+/// <summary>An activated admin ready to log in with a known password.</summary>
+public sealed record TestAdmin(string Id, string Username, string Password);
+
 public static class TestHelpers
 {
     public static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
@@ -101,6 +104,44 @@ public static class TestHelpers
     {
         var auth = await factory.LoginAsync(student.Username, student.Password);
         return factory.ClientWithToken(auth.Token);
+    }
+
+    /// <summary>
+    /// Admin account flow: create (no password) → activate (email captured) →
+    /// first login with the temp password → change to a known password.
+    /// </summary>
+    public static async Task<TestAdmin> CreateActivatedAdminAsync(
+        this ApiFactory factory, HttpClient superAdmin)
+    {
+        var username = Unique("adm");
+        var email = $"{username}@test.local";
+
+        var createResponse = await superAdmin.PostAsJsonAsync("/api/superadmin/admins", new
+        {
+            username,
+            firstName = "Test",
+            lastName = "Admin",
+            email,
+            displayName = (string?)null
+        }, Json);
+        createResponse.EnsureSuccessStatusCode();
+        var dto = (await createResponse.Content.ReadFromJsonAsync<AdminAccountDto>(Json))!;
+
+        var activateResponse = await superAdmin.PostAsync($"/api/superadmin/admins/{dto.Id}/activate", null);
+        activateResponse.EnsureSuccessStatusCode();
+
+        var tempPassword = ExtractPassword(factory.Emails.LastTo(email).Body);
+
+        var firstLogin = await factory.LoginAsync(username, tempPassword);
+        Assert.True(firstLogin.MustChangePassword);
+
+        const string finalPassword = "Chosen!Admin123";
+        using var client = factory.ClientWithToken(firstLogin.Token);
+        var change = await client.PostAsJsonAsync("/api/auth/change-password",
+            new { currentPassword = tempPassword, newPassword = finalPassword }, Json);
+        change.EnsureSuccessStatusCode();
+
+        return new TestAdmin(dto.Id, username, finalPassword);
     }
 
     public static string ExtractPassword(string emailBody) =>
