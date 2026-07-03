@@ -46,39 +46,34 @@ export default function Layout() {
   return (
     <div className="flex min-h-dvh flex-col">
       <header className="sticky top-0 z-10 border-b border-white/10 bg-[#040404]/80 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-4">
-          <div className="flex min-w-0 flex-1 items-center gap-3">
-            <img src="/verbuddy-logo-transparent.png" alt="VerBuddy" className="h-20 w-20 shrink-0" />
-            <div className="flex min-w-0 flex-col gap-1">
-              <span className="truncate text-base font-semibold text-slate-700">
-                {user?.displayName}
+        <div className="flex w-full items-center gap-6 px-6 py-3">
+          <img src="/verbuddy-logo-transparent.png" alt="VerBuddy" className="h-20 w-20 shrink-0" />
+          <div className="flex min-w-0 flex-1 flex-col justify-center gap-1">
+            <span className="truncate text-base font-semibold leading-tight text-slate-700">
+              {user?.displayName}
+            </span>
+            {isAdmin ? (
+              <span className="w-fit whitespace-nowrap rounded bg-indigo-600/15 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-indigo-600">
+                {isSuperAdmin ? 'Super Admin' : 'Admin'}
               </span>
-              <div className="flex items-center gap-2">
-                {isAdmin && (
-                  <span className="shrink-0 whitespace-nowrap rounded bg-indigo-600/15 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-indigo-600">
-                    {isSuperAdmin ? 'Super Admin' : 'Admin'}
+            ) : (
+              progress && (
+                <div className="flex items-center gap-2">
+                  <span className="shrink-0 whitespace-nowrap rounded-none border border-indigo-600 px-1.5 py-0.5 text-[10px] font-bold tracking-wide text-indigo-600">
+                    LV {progress.level}
                   </span>
-                )}
-                {progress && (
-                  <>
-                    <span className="shrink-0 whitespace-nowrap rounded-none border border-indigo-600 px-1.5 py-0.5 text-[10px] font-bold tracking-wide text-indigo-600">
-                      LV {progress.level}
-                    </span>
-                    <span className="flex shrink-0 flex-col gap-0.5">
-                      <span
-                        className="h-1.5 w-24 overflow-hidden rounded-none bg-white/10 sm:w-32"
-                        title={`${progress.current.toLocaleString()} / ${progress.needed.toLocaleString()} XP`}
-                      >
-                        <span className="block h-full bg-indigo-600" style={{ width: `${progress.pct}%` }} />
-                      </span>
-                      <span className="whitespace-nowrap text-[10px] font-medium tabular-nums text-slate-500">
-                        {progress.current.toLocaleString()} / {progress.needed.toLocaleString()} XP
-                      </span>
-                    </span>
-                  </>
-                )}
-              </div>
-            </div>
+                  <span
+                    className="h-1.5 w-24 shrink-0 overflow-hidden rounded-none bg-white/10 sm:w-32"
+                    title={`${progress.current.toLocaleString()} / ${progress.needed.toLocaleString()} XP`}
+                  >
+                    <span className="block h-full bg-indigo-600" style={{ width: `${progress.pct}%` }} />
+                  </span>
+                  <span className="whitespace-nowrap text-[10px] font-medium tabular-nums text-slate-500">
+                    {progress.current.toLocaleString()} / {progress.needed.toLocaleString()} XP
+                  </span>
+                </div>
+              )
+            )}
           </div>
           <nav className="hidden shrink-0 items-center gap-2 sm:flex">
             {tabs.map((t) => (
