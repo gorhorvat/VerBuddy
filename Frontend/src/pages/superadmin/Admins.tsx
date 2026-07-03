@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { api, type AdminAccount } from '../../api'
 import { Button, Card, ErrorText, Spinner, inputClass } from '../../components/ui'
 import ConfirmDialog from '../../components/ConfirmDialog'
+import Modal from '../../components/Modal'
 
 const emptyForm = { username: '', firstName: '', lastName: '', email: '', displayName: '' }
 
@@ -106,35 +107,31 @@ export default function Admins() {
   if (!admins) return <Spinner />
 
   return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-lg font-bold">🛡️ Admins</h1>
-        <Button onClick={() => setShowCreate((v) => !v)} variant={showCreate ? 'secondary' : 'primary'}>
-          {showCreate ? 'Cancel' : '+ Add admin'}
-        </Button>
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold">🛡️ Admins</h1>
+        <Button onClick={() => setShowCreate(true)}>+ Add admin</Button>
       </div>
 
       <ErrorText message={error} />
-      {notice && <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{notice}</p>}
+      {notice && <p className="rounded-lg bg-emerald-50 px-4 py-3 text-base text-emerald-800">{notice}</p>}
 
-      {showCreate && (
-        <Card>
-          <form onSubmit={create} className="space-y-3">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <input className={inputClass} placeholder="Login username *" value={form.username} onChange={setCreate('username')} required minLength={3} maxLength={50} />
-              <input className={inputClass} type="email" placeholder="Email (needed for activation)" value={form.email} onChange={setCreate('email')} />
-              <input className={inputClass} placeholder="First name" value={form.firstName} onChange={setCreate('firstName')} />
-              <input className={inputClass} placeholder="Last name" value={form.lastName} onChange={setCreate('lastName')} />
-              <input className={inputClass} placeholder="Nickname (empty = auto-generate)" value={form.displayName} onChange={setCreate('displayName')} maxLength={32} />
-            </div>
-            <p className="text-xs text-slate-500">
-              No password needed — activating the account emails a temporary password,
-              which must be replaced on first login.
-            </p>
-            <Button type="submit" className="w-full">Create admin</Button>
-          </form>
-        </Card>
-      )}
+      <Modal open={showCreate} title="Add admin" onClose={() => setShowCreate(false)}>
+        <form onSubmit={create} className="space-y-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <input className={inputClass} placeholder="Login username *" value={form.username} onChange={setCreate('username')} required minLength={3} maxLength={50} />
+            <input className={inputClass} type="email" placeholder="Email (needed for activation)" value={form.email} onChange={setCreate('email')} />
+            <input className={inputClass} placeholder="First name" value={form.firstName} onChange={setCreate('firstName')} />
+            <input className={inputClass} placeholder="Last name" value={form.lastName} onChange={setCreate('lastName')} />
+            <input className={inputClass} placeholder="Nickname (empty = auto-generate)" value={form.displayName} onChange={setCreate('displayName')} maxLength={32} />
+          </div>
+          <p className="text-sm text-slate-500">
+            No password needed — activating the account emails a temporary password,
+            which must be replaced on first login.
+          </p>
+          <Button type="submit" className="w-full">Create admin</Button>
+        </form>
+      </Modal>
 
       {admins.map((a) => {
         const busy = busyIds.has(a.id)
@@ -153,21 +150,7 @@ export default function Admins() {
               </div>
             </div>
 
-            {editId === a.id ? (
-              <form onSubmit={saveEdit} className="space-y-2">
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  <input className={inputClass} placeholder="First name" value={editForm.firstName} onChange={setEdit('firstName')} />
-                  <input className={inputClass} placeholder="Last name" value={editForm.lastName} onChange={setEdit('lastName')} />
-                  <input className={inputClass} type="email" placeholder="Email" value={editForm.email} onChange={setEdit('email')} />
-                  <input className={inputClass} placeholder="Nickname" value={editForm.displayName} onChange={setEdit('displayName')} maxLength={32} />
-                </div>
-                <div className="flex gap-2">
-                  <Button type="submit" className="!px-3 !py-1 text-xs">Save</Button>
-                  <Button type="button" variant="secondary" className="!px-3 !py-1 text-xs" onClick={() => setEditId(null)}>Cancel</Button>
-                </div>
-              </form>
-            ) : (
-              <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
                 {!a.isActive ? (
                   <span className="rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-semibold text-rose-800">Deactivated</span>
                 ) : a.activatedAt === null ? (
@@ -181,7 +164,7 @@ export default function Admins() {
                   <>
                     <Button
                       variant="secondary"
-                      className="!px-3 !py-1 text-xs"
+                      className="!px-4 !py-1.5 !text-sm"
                       disabled={busy}
                       onClick={() => runFor(a.id, () => api(`/api/superadmin/admins/${a.id}/activate`, { method: 'POST' }), `Activation email sent to ${a.email}.`)}
                     >
@@ -189,7 +172,7 @@ export default function Admins() {
                     </Button>
                     <Button
                       variant="secondary"
-                      className="!px-3 !py-1 text-xs"
+                      className="!px-4 !py-1.5 !text-sm"
                       disabled={busy}
                       onClick={() => runFor(a.id, () => api(`/api/superadmin/admins/${a.id}/reset-password`, { method: 'POST' }), `Password reset link sent to ${a.email}.`)}
                     >
@@ -197,7 +180,7 @@ export default function Admins() {
                     </Button>
                     <Button
                       variant="secondary"
-                      className="!px-3 !py-1 text-xs"
+                      className="!px-4 !py-1.5 !text-sm"
                       disabled={busy}
                       onClick={() => runFor(a.id, () => api(`/api/superadmin/admins/${a.id}/deactivate`, { method: 'POST' }))}
                     >
@@ -208,24 +191,38 @@ export default function Admins() {
                 {!a.isActive && (
                   <Button
                     variant="secondary"
-                    className="!px-3 !py-1 text-xs"
+                    className="!px-4 !py-1.5 !text-sm"
                     disabled={busy}
                     onClick={() => runFor(a.id, () => api(`/api/superadmin/admins/${a.id}/reactivate`, { method: 'POST' }))}
                   >
                     ▶ Reactivate
                   </Button>
                 )}
-                <Button variant="secondary" className="!px-3 !py-1 text-xs" disabled={busy} onClick={() => startEdit(a)}>
+                <Button variant="secondary" className="!px-4 !py-1.5 !text-sm" disabled={busy} onClick={() => startEdit(a)}>
                   ✏️ Edit
                 </Button>
-                <Button variant="danger" className="!px-3 !py-1 text-xs" disabled={busy} onClick={() => setDeleteTarget(a)}>
+                <Button variant="danger" className="!px-4 !py-1.5 !text-sm" disabled={busy} onClick={() => setDeleteTarget(a)}>
                   🗑 Delete
                 </Button>
               </div>
-            )}
           </Card>
         )
       })}
+
+      <Modal open={editId !== null} title="Edit admin" onClose={() => setEditId(null)}>
+        <form onSubmit={saveEdit} className="space-y-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <input className={inputClass} placeholder="First name" value={editForm.firstName} onChange={setEdit('firstName')} />
+            <input className={inputClass} placeholder="Last name" value={editForm.lastName} onChange={setEdit('lastName')} />
+            <input className={inputClass} type="email" placeholder="Email" value={editForm.email} onChange={setEdit('email')} />
+            <input className={inputClass} placeholder="Nickname" value={editForm.displayName} onChange={setEdit('displayName')} maxLength={32} />
+          </div>
+          <div className="flex justify-end gap-3">
+            <Button type="button" variant="secondary" onClick={() => setEditId(null)}>Cancel</Button>
+            <Button type="submit">Save changes</Button>
+          </div>
+        </form>
+      </Modal>
 
       <ConfirmDialog
         open={deleteTarget !== null}

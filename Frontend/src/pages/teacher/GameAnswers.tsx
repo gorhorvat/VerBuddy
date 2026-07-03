@@ -130,7 +130,7 @@ export default function GameAnswers() {
   return (
     <div className="space-y-3">
       <Link to="/teacher/games" className="text-sm font-semibold text-indigo-600">← All games</Link>
-      <h1 className="text-lg font-bold">{data.title} — answers</h1>
+      <h1 className="text-2xl font-bold">{data.title} — answers</h1>
       <p className="text-xs text-slate-500">
         {gameTypeLabels[data.gameType]} · adjusting points recalculates the student's score and XP immediately.
       </p>

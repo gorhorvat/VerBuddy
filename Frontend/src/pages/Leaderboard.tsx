@@ -58,7 +58,7 @@ export default function Leaderboard() {
 
   return (
     <div className="space-y-3">
-      <h1 className="text-lg font-bold">🏆 Leaderboard</h1>
+      <h1 className="text-2xl font-bold">🏆 Leaderboard</h1>
 
       {hasClass && (
         <div className="flex rounded-xl bg-slate-200 p-1">

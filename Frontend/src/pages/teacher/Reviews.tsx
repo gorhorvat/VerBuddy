@@ -103,7 +103,7 @@ export default function Reviews() {
 
   return (
     <div className="space-y-3">
-      <h1 className="text-lg font-bold">📝 Pending reviews</h1>
+      <h1 className="text-2xl font-bold">📝 Pending reviews</h1>
       {attempts.length === 0 && (
         <Card><p className="text-sm text-slate-500">Nothing to review — all caught up! 🎉</p></Card>
       )}

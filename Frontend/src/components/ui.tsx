@@ -2,7 +2,7 @@ import type { ButtonHTMLAttributes, ReactNode } from 'react'
 
 export function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
   return (
-    <div className={`rounded-2xl border border-white/10 bg-white/[0.03] p-4 backdrop-blur-md sm:p-6 ${className}`}>{children}</div>
+    <div className={`rounded-2xl border border-white/10 bg-white/[0.03] p-5 backdrop-blur-md sm:p-8 ${className}`}>{children}</div>
   )
 }
 
@@ -21,7 +21,7 @@ export function Button({
 }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: keyof typeof buttonVariants }) {
   return (
     <button
-      className={`rounded-lg border bg-transparent px-4 py-2.5 font-display text-sm font-semibold tracking-wide transition-[background-color,box-shadow,border-color] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 motion-reduce:transition-none disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:shadow-none ${buttonVariants[variant]} ${className}`}
+      className={`rounded-lg border bg-transparent px-6 py-3 font-display text-base font-semibold tracking-wide transition-[background-color,box-shadow,border-color] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 motion-reduce:transition-none disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:shadow-none ${buttonVariants[variant]} ${className}`}
       {...props}
     />
   )
@@ -62,7 +62,7 @@ export function Spinner() {
 }
 
 export const inputClass =
-  'w-full rounded-lg border border-white/20 bg-white/[0.04] px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-600/25'
+  'w-full rounded-lg border border-white/20 bg-white/[0.04] px-4 py-3 text-base text-slate-900 placeholder:text-slate-400 focus:border-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-600/25'
 
 export const gameTypeLabels: Record<string, string> = {
   SingleChoice: 'Single Choice',

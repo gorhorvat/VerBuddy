@@ -84,7 +84,7 @@ export default function StudentDashboard() {
 
   return (
     <div className="space-y-3">
-      <h1 className="text-lg font-bold">🎲 Current games</h1>
+      <h1 className="text-2xl font-bold">🎲 Current games</h1>
       {current.length === 0 && (
         <Card>
           <p className="text-sm text-slate-500">No active games right now. Check back later!</p>
@@ -96,7 +96,7 @@ export default function StudentDashboard() {
 
       {past.length > 0 && (
         <>
-          <h1 className="pt-3 text-lg font-bold">📚 Past games</h1>
+          <h1 className="pt-4 text-2xl font-bold">📚 Past games</h1>
           {past.map((g) => (
             <GameCard key={g.id} game={g} past />
           ))}

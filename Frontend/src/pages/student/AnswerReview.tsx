@@ -30,7 +30,7 @@ export default function AnswerReview() {
     <div className="space-y-3">
       <Link to="/games" className="text-sm font-semibold text-indigo-600">← Back to games</Link>
       <div className="flex items-center justify-between gap-2">
-        <h1 className="text-lg font-bold">{data.title}</h1>
+        <h1 className="text-2xl font-bold">{data.title}</h1>
         <Badge value={data.result.status} />
       </div>
       <p className="text-xs text-slate-500">{gameTypeLabels[data.gameType]}</p>

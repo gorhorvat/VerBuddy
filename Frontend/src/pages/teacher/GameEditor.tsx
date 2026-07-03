@@ -162,7 +162,7 @@ export default function GameEditor() {
     <div className="space-y-3">
       <Link to="/teacher/games" className="text-sm font-semibold text-indigo-600">← All games</Link>
       <div className="flex items-center justify-between gap-2">
-        <h1 className="text-lg font-bold">{game.title}</h1>
+        <h1 className="text-2xl font-bold">{game.title}</h1>
         <Badge value={game.state} />
       </div>
       <p className="text-xs text-slate-500">

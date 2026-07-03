@@ -9,6 +9,7 @@ import {
 } from '../../api'
 import { Button, Card, ErrorText, Spinner, inputClass } from '../../components/ui'
 import ConfirmDialog from '../../components/ConfirmDialog'
+import Modal from '../../components/Modal'
 
 /**
  * Teacher-only roster — the one place in the UI where real names and emails
@@ -178,14 +179,12 @@ export default function Students() {
   if (!students) return <Spinner />
 
   return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-lg font-bold">👥 Students</h1>
-        <div className="flex gap-2">
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold">👥 Students</h1>
+        <div className="flex gap-3">
           <Button variant="secondary" onClick={() => fileInputRef.current?.click()}>⬆ Import CSV</Button>
-          <Button onClick={() => setShowCreate((v) => !v)} variant={showCreate ? 'secondary' : 'primary'}>
-            {showCreate ? 'Cancel' : '+ Add student'}
-          </Button>
+          <Button onClick={() => setShowCreate(true)}>+ Add student</Button>
         </div>
       </div>
       <input
@@ -210,33 +209,31 @@ export default function Students() {
       </div>
 
       <ErrorText message={error} />
-      {notice && <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{notice}</p>}
+      {notice && <p className="rounded-lg bg-emerald-50 px-4 py-3 text-base text-emerald-800">{notice}</p>}
 
-      {showCreate && (
-        <Card>
-          <form onSubmit={create} className="space-y-3">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <input className={inputClass} placeholder="Login username *" value={form.username} onChange={set('username')} required minLength={3} maxLength={50} />
-              <input className={inputClass} type="email" placeholder="Email (needed for activation)" value={form.email} onChange={set('email')} />
-              <input className={inputClass} placeholder="First name" value={form.firstName} onChange={set('firstName')} />
-              <input className={inputClass} placeholder="Last name" value={form.lastName} onChange={set('lastName')} />
-              <input className={inputClass} placeholder="Nickname (empty = auto-generate)" value={form.displayName} onChange={set('displayName')} maxLength={32} />
-              <select className={inputClass} value={form.categoryId} onChange={set('categoryId')}>
-                <option value="">No class</option>
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
-            </div>
-            <p className="text-xs text-slate-500">
-              No password needed — activating the account emails the student a temporary
-              password, which they must replace on first login. Real name and email stay
-              private to you; classmates only ever see the nickname.
-            </p>
-            <Button type="submit" className="w-full">Create account</Button>
-          </form>
-        </Card>
-      )}
+      <Modal open={showCreate} title="Add student" onClose={() => setShowCreate(false)}>
+        <form onSubmit={create} className="space-y-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <input className={inputClass} placeholder="Login username *" value={form.username} onChange={set('username')} required minLength={3} maxLength={50} />
+            <input className={inputClass} type="email" placeholder="Email (needed for activation)" value={form.email} onChange={set('email')} />
+            <input className={inputClass} placeholder="First name" value={form.firstName} onChange={set('firstName')} />
+            <input className={inputClass} placeholder="Last name" value={form.lastName} onChange={set('lastName')} />
+            <input className={inputClass} placeholder="Nickname (empty = auto-generate)" value={form.displayName} onChange={set('displayName')} maxLength={32} />
+            <select className={inputClass} value={form.categoryId} onChange={set('categoryId')}>
+              <option value="">No class</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+          <p className="text-sm text-slate-500">
+            No password needed — activating the account emails the student a temporary
+            password, which they must replace on first login. Real name and email stay
+            private to you; classmates only ever see the nickname.
+          </p>
+          <Button type="submit" className="w-full">Create account</Button>
+        </form>
+      </Modal>
 
       {selected.size > 0 && (
         <div className="sticky top-14 z-10 flex items-center justify-between rounded-xl border border-indigo-600/60 bg-indigo-600/15 px-4 py-2.5 text-indigo-600 shadow backdrop-blur">
@@ -275,26 +272,6 @@ export default function Students() {
                 {s.totalXp} XP
               </span>
             </div>
-            {editId === s.id ? (
-              <form onSubmit={saveEdit} className="space-y-2 pl-7">
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  <input className={inputClass} placeholder="First name" value={editForm.firstName} onChange={setEdit('firstName')} />
-                  <input className={inputClass} placeholder="Last name" value={editForm.lastName} onChange={setEdit('lastName')} />
-                  <input className={inputClass} type="email" placeholder="Email" value={editForm.email} onChange={setEdit('email')} />
-                  <input className={inputClass} placeholder="Nickname" value={editForm.displayName} onChange={setEdit('displayName')} maxLength={32} />
-                  <select className={inputClass} value={editForm.categoryId} onChange={setEdit('categoryId')}>
-                    <option value="">No class</option>
-                    {categories.map((c) => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="flex gap-2">
-                  <Button type="submit" className="!px-3 !py-1 text-xs">Save</Button>
-                  <Button type="button" variant="secondary" className="!px-3 !py-1 text-xs" onClick={() => setEditId(null)}>Cancel</Button>
-                </div>
-              </form>
-            ) : (
             <div className="flex flex-wrap items-center gap-2 pl-7">
               {!s.isActive ? (
                 <span className="rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-semibold text-rose-800">Deactivated</span>
@@ -309,7 +286,7 @@ export default function Students() {
                 <>
                   <Button
                     variant="secondary"
-                    className="!px-3 !py-1 text-xs"
+                    className="!px-4 !py-1.5 !text-sm"
                     disabled={busy}
                     onClick={() => runFor(s.id, () => api(`/api/admin/students/${s.id}/activate`, { method: 'POST' }), `Activation email sent to ${s.email}.`)}
                   >
@@ -317,7 +294,7 @@ export default function Students() {
                   </Button>
                   <Button
                     variant="secondary"
-                    className="!px-3 !py-1 text-xs"
+                    className="!px-4 !py-1.5 !text-sm"
                     disabled={busy}
                     onClick={() => runFor(s.id, () => api(`/api/admin/students/${s.id}/reset-password`, { method: 'POST' }), `Password reset link sent to ${s.email}.`)}
                   >
@@ -325,7 +302,7 @@ export default function Students() {
                   </Button>
                   <Button
                     variant="secondary"
-                    className="!px-3 !py-1 text-xs"
+                    className="!px-4 !py-1.5 !text-sm"
                     disabled={busy}
                     onClick={() => runFor(s.id, () => api(`/api/admin/students/${s.id}/deactivate`, { method: 'POST' }))}
                   >
@@ -336,29 +313,49 @@ export default function Students() {
               {!s.isActive && (
                 <Button
                   variant="secondary"
-                  className="!px-3 !py-1 text-xs"
+                  className="!px-4 !py-1.5 !text-sm"
                   disabled={busy}
                   onClick={() => runFor(s.id, () => api(`/api/admin/students/${s.id}/reactivate`, { method: 'POST' }))}
                 >
                   ▶ Reactivate
                 </Button>
               )}
-              <Button variant="secondary" className="!px-3 !py-1 text-xs" disabled={busy} onClick={() => startEdit(s)}>
+              <Button variant="secondary" className="!px-4 !py-1.5 !text-sm" disabled={busy} onClick={() => startEdit(s)}>
                 ✏️ Edit
               </Button>
               <Button
                 variant="danger"
-                className="!px-3 !py-1 text-xs"
+                className="!px-4 !py-1.5 !text-sm"
                 disabled={busy}
                 onClick={() => setDeleteTarget(s)}
               >
                 🗑 Delete
               </Button>
             </div>
-            )}
           </Card>
         )
       })}
+
+      <Modal open={editId !== null} title="Edit student" onClose={() => setEditId(null)}>
+        <form onSubmit={saveEdit} className="space-y-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <input className={inputClass} placeholder="First name" value={editForm.firstName} onChange={setEdit('firstName')} />
+            <input className={inputClass} placeholder="Last name" value={editForm.lastName} onChange={setEdit('lastName')} />
+            <input className={inputClass} type="email" placeholder="Email" value={editForm.email} onChange={setEdit('email')} />
+            <input className={inputClass} placeholder="Nickname" value={editForm.displayName} onChange={setEdit('displayName')} maxLength={32} />
+            <select className={inputClass} value={editForm.categoryId} onChange={setEdit('categoryId')}>
+              <option value="">No class</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex justify-end gap-3">
+            <Button type="button" variant="secondary" onClick={() => setEditId(null)}>Cancel</Button>
+            <Button type="submit">Save changes</Button>
+          </div>
+        </form>
+      </Modal>
 
       <ConfirmDialog
         open={deleteTarget !== null}

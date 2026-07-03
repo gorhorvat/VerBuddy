@@ -94,7 +94,7 @@ export default function TeacherGames() {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-2">
-        <h1 className="text-lg font-bold">🎲 Games</h1>
+        <h1 className="text-2xl font-bold">🎲 Games</h1>
         <div className="flex gap-2">
           <Button variant="secondary" onClick={() => setShowCategories((v) => !v)}>
             📁 Categories
