@@ -2,21 +2,18 @@ import type { ButtonHTMLAttributes, ReactNode } from 'react'
 
 export function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
   return (
-    <div className={`rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6 ${className}`}>{children}</div>
+    <div className={`rounded-2xl border border-white/10 bg-white/[0.03] p-4 backdrop-blur-md sm:p-6 ${className}`}>{children}</div>
   )
 }
 
+/** Outlined controls on dark glass — SPM Interactive house style. */
 const buttonVariants = {
-  primary: 'bg-indigo-600 text-white hover:bg-indigo-500 disabled:bg-indigo-300',
-  secondary: 'bg-white text-slate-800 hover:bg-slate-50 disabled:text-slate-400',
-  danger: 'bg-rose-600 text-white hover:bg-rose-700 disabled:bg-rose-300',
-  success: 'bg-emerald-600 text-white hover:bg-emerald-700 disabled:bg-emerald-300',
+  primary: 'border-indigo-600 text-indigo-600 hover:bg-indigo-600/10 hover:shadow-glow',
+  secondary: 'border-white/25 text-slate-700 hover:bg-white/5',
+  danger: 'border-rose-600 text-rose-600 hover:bg-rose-600/10',
+  success: 'border-emerald-600 text-emerald-600 hover:bg-emerald-600/10',
 } as const
 
-/**
- * Letter-tile button: hard offset shadow that collapses on press, like
- * pushing down a word-game tile. Disabled tiles lie flat.
- */
 export function Button({
   variant = 'primary',
   className = '',
@@ -24,7 +21,7 @@ export function Button({
 }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: keyof typeof buttonVariants }) {
   return (
     <button
-      className={`rounded-xl border-2 border-slate-900 px-4 py-2.5 text-sm font-bold shadow-tile transition-[background-color,transform,box-shadow] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 enabled:active:translate-y-[3px] enabled:active:shadow-none motion-reduce:transition-none disabled:cursor-not-allowed disabled:border-slate-300 disabled:shadow-none ${buttonVariants[variant]} ${className}`}
+      className={`rounded-lg border bg-transparent px-4 py-2.5 font-display text-sm font-semibold tracking-wide transition-[background-color,box-shadow,border-color] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 motion-reduce:transition-none disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:shadow-none ${buttonVariants[variant]} ${className}`}
       {...props}
     />
   )
@@ -65,7 +62,7 @@ export function Spinner() {
 }
 
 export const inputClass =
-  'w-full rounded-xl border-2 border-slate-300 bg-white px-3 py-2.5 text-sm font-medium focus:border-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-200'
+  'w-full rounded-lg border border-white/20 bg-white/[0.04] px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-600/25'
 
 export const gameTypeLabels: Record<string, string> = {
   SingleChoice: 'Single Choice',

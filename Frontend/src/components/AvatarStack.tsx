@@ -27,7 +27,7 @@ function initials(name: string) {
 
 function Tooltip({ text }: { text: string }) {
   return (
-    <div className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-1.5 hidden -translate-x-1/2 whitespace-nowrap rounded-lg bg-slate-800 px-2 py-1 text-xs font-semibold text-white shadow-lg group-hover:block">
+    <div className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-1.5 hidden -translate-x-1/2 whitespace-nowrap rounded-lg border border-white/10 bg-[#1c1c1c] px-2 py-1 text-xs font-semibold text-white shadow-lg group-hover:block">
       {text}
     </div>
   )
@@ -44,7 +44,7 @@ export default function AvatarStack({ names, max = 5 }: { names: string[]; max?:
       {visible.map((name) => (
         <div key={name} className="group relative -ml-2 first:ml-0">
           <div
-            className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold text-white ring-2 ring-white ${colorFor(name)}`}
+            className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold text-white ring-2 ring-[#0d0d0d] ${colorFor(name)}`}
           >
             {initials(name)}
           </div>
@@ -53,10 +53,10 @@ export default function AvatarStack({ names, max = 5 }: { names: string[]; max?:
       ))}
       {overflow.length > 0 && (
         <div className="group relative -ml-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-300 text-xs font-bold text-slate-700 ring-2 ring-white">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-300 text-xs font-bold text-slate-700 ring-2 ring-[#0d0d0d]">
             +{overflow.length}
           </div>
-          <div className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-1.5 hidden max-h-56 -translate-x-1/2 overflow-y-auto rounded-xl bg-slate-800 px-3 py-2 shadow-lg group-hover:block">
+          <div className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-1.5 hidden max-h-56 -translate-x-1/2 overflow-y-auto rounded-xl border border-white/10 bg-[#1c1c1c] px-3 py-2 shadow-lg group-hover:block">
             {overflow.map((name) => (
               <p key={name} className="whitespace-nowrap py-0.5 text-xs font-semibold text-white">
                 {name}

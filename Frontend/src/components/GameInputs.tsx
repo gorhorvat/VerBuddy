@@ -10,7 +10,7 @@ interface InputProps {
 
 const choiceBase =
   'flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left text-sm font-medium transition-colors'
-const choiceIdle = 'border-slate-300 bg-white hover:border-indigo-400'
+const choiceIdle = 'border-white/15 bg-white/[0.03] hover:border-indigo-400'
 const choiceSelected = 'border-indigo-600 bg-indigo-50 text-indigo-900'
 
 /** Answer: { selectedIndex: number } */
@@ -63,7 +63,7 @@ export function MultipleChoiceInput({ jsonContent, value, onChange }: InputProps
           className={`${choiceBase} ${selected.has(i) ? choiceSelected : choiceIdle}`}
         >
           <span
-            className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border-2 text-[10px] text-white ${selected.has(i) ? 'border-indigo-600 bg-indigo-600' : 'border-slate-400'}`}
+            className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border-2 text-[10px] text-black ${selected.has(i) ? 'border-indigo-600 bg-indigo-600' : 'border-slate-400'}`}
           >
             {selected.has(i) && '✓'}
           </span>
@@ -97,7 +97,7 @@ export function FillInTheBlanksInput({ jsonContent, value, onChange }: InputProp
           {part}
           {i < parts.length - 1 && (
             <input
-              className="mx-1 inline-block w-28 rounded-lg border border-slate-300 px-2 py-1 text-center text-sm font-semibold focus:border-indigo-500 focus:outline-none"
+              className="mx-1 inline-block w-28 rounded-lg border border-white/20 bg-white/[0.04] px-2 py-1 text-center text-sm font-semibold focus:border-indigo-500 focus:outline-none"
               value={answers[i] ?? ''}
               onChange={(e) => setAnswer(i, e.target.value)}
               placeholder={`blank ${i + 1}`}
@@ -135,7 +135,7 @@ export function WordMatchingInput({ jsonContent, value, onChange }: InputProps) 
             {key}
           </span>
           <select
-            className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+            className="w-full rounded-lg border border-white/20 bg-white/[0.04] px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
             value={matches[key] ?? ''}
             onChange={(e) => setMatch(key, e.target.value)}
           >

@@ -22,23 +22,23 @@ export default function Layout() {
       ]
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
-    `flex flex-1 flex-col items-center gap-0.5 rounded-xl px-3 py-1.5 text-xs font-bold transition-colors sm:flex-initial sm:flex-row sm:gap-2 sm:text-sm ${
+    `flex flex-1 flex-col items-center gap-0.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors sm:flex-initial sm:flex-row sm:gap-2 sm:text-sm ${
       isActive
-        ? 'border-2 border-slate-900 bg-indigo-600 text-white shadow-tile-sm'
-        : 'border-2 border-transparent text-slate-600 hover:bg-slate-200'
+        ? 'border-indigo-600/60 bg-indigo-600/10 text-indigo-600'
+        : 'border-transparent text-slate-500 hover:bg-white/5 hover:text-slate-700'
     }`
 
   return (
     <div className="mx-auto flex min-h-dvh max-w-3xl flex-col">
-      <header className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-slate-200 bg-white/90 px-4 py-3 backdrop-blur">
+      <header className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-white/10 bg-[#040404]/80 px-4 py-3 backdrop-blur">
         <div className="min-w-0">
           <p className="font-display text-base font-extrabold tracking-tight text-slate-900">
-            <span className="wordmark-blank">Ver</span>Buddy
+            <span className="text-indigo-600">Ver</span>Buddy
           </p>
-          <p className="truncate text-xs font-semibold text-indigo-700">
+          <p className="truncate text-xs font-semibold text-slate-500">
             {user?.displayName}
             {isAdmin && (
-              <span className="ml-1.5 rounded bg-indigo-100 px-1.5 py-0.5 text-[10px] uppercase tracking-wide">
+              <span className="ml-1.5 rounded bg-indigo-600/15 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-indigo-600">
                 {isSuperAdmin ? 'Super Admin' : 'Admin'}
               </span>
             )}
@@ -54,7 +54,7 @@ export default function Layout() {
         </nav>
         <button
           onClick={logout}
-          className="rounded-xl px-3 py-1.5 text-sm font-bold text-slate-500 hover:bg-slate-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+          className="rounded-lg px-3 py-1.5 text-sm font-semibold text-slate-500 hover:bg-white/5 hover:text-slate-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
         >
           Log out
         </button>
@@ -65,7 +65,7 @@ export default function Layout() {
       </main>
 
       {/* Bottom tab bar — phones only */}
-      <nav className="fixed inset-x-0 bottom-0 z-10 mx-auto flex max-w-3xl gap-1 border-t border-slate-200 bg-white px-3 py-2 sm:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-10 mx-auto flex max-w-3xl gap-1 border-t border-white/10 bg-[#040404]/90 px-3 py-2 backdrop-blur sm:hidden">
         {tabs.map((t) => (
           <NavLink key={t.to} to={t.to} className={linkClass}>
             <span className="text-base">{t.icon}</span>

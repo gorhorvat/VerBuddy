@@ -23,23 +23,15 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-dvh items-center justify-center px-4">
-      <Card className="w-full max-w-sm">
+    <div className="relative flex min-h-dvh items-center justify-center overflow-hidden px-4">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute left-1/2 top-1/2 h-[480px] w-[480px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-indigo-600/10 blur-3xl"
+      />
+      <Card className="relative w-full max-w-sm">
         <div className="mb-6 text-center">
-          <div className="mb-3 flex justify-center gap-1.5" aria-hidden>
-            {['W', 'O', 'R', 'D', 'S'].map((letter, i) => (
-              <span
-                key={letter}
-                className={`flex h-9 w-9 items-center justify-center rounded-lg border-2 border-slate-900 font-mono text-sm font-bold shadow-tile-sm ${
-                  i === 2 ? 'bg-indigo-600 text-white' : 'bg-white text-slate-900'
-                }`}
-              >
-                {letter}
-              </span>
-            ))}
-          </div>
           <h1 className="text-3xl font-extrabold tracking-tight">
-            <span className="wordmark-blank">Ver</span>Buddy
+            <span className="text-indigo-600">Ver</span>Buddy
           </h1>
           <p className="mt-1 text-sm font-medium text-slate-500">
             Your word-game buddy for English class

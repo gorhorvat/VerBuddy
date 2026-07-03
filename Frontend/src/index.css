@@ -1,73 +1,74 @@
-@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
 /*
- * VerBuddy design tokens — "workbook meets arcade".
- * The built-in indigo/slate/emerald/rose scales are overridden so every page
- * written with standard Tailwind classes picks up the brand palette:
- *   indigo  → ballpoint blue-violet (primary)
- *   slate   → ink-tinted cool neutrals (text/borders/paper)
- *   emerald → mint (success)   rose → coral (danger)
+ * VerBuddy — SPM Interactive brand: near-black surfaces, cyan #39D5D3 accent,
+ * Montserrat display over Inter body, glass blur, outlined controls.
+ *
+ * The built-in scales are remapped for the dark theme so pages written with
+ * standard Tailwind classes reskin without edits:
+ *   slate   → inverted neutrals (slate-900 = near-white text on dark)
+ *   indigo  → SPM cyan (600 = #39D5D3 brand)
+ *   emerald/rose/amber/sky → dark-friendly state tints
  */
 @theme {
-  --font-display: "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
-  --font-sans: "Figtree", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --font-display: "Montserrat", "Inter", ui-sans-serif, sans-serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
 
-  --color-indigo-50: #eef1ff;
-  --color-indigo-100: #e0e5ff;
-  --color-indigo-200: #c6ceff;
-  --color-indigo-300: #a3aeff;
-  --color-indigo-400: #7b85f7;
-  --color-indigo-500: #5a61ee;
-  --color-indigo-600: #4348e0;
-  --color-indigo-700: #3438c4;
-  --color-indigo-800: #2b2f9e;
-  --color-indigo-900: #272c7c;
-  --color-indigo-950: #181b4b;
+  --color-slate-50: #1a1a1a;
+  --color-slate-100: #111111;
+  --color-slate-200: #262626;
+  --color-slate-300: #3a3a3a;
+  --color-slate-400: #6b6b6b;
+  --color-slate-500: #b0b0b0;
+  --color-slate-600: #c4c4c4;
+  --color-slate-700: #d6d6d6;
+  --color-slate-800: #e8e8e8;
+  --color-slate-900: #f5f5f5;
+  --color-slate-950: #ffffff;
 
-  --color-slate-50: #f6f8fb;
-  --color-slate-100: #edf1f7;
-  --color-slate-200: #dde3ee;
-  --color-slate-300: #c3ccdd;
-  --color-slate-400: #93a0ba;
-  --color-slate-500: #64718f;
-  --color-slate-600: #4a5571;
-  --color-slate-700: #3b445c;
-  --color-slate-800: #2c3247;
-  --color-slate-900: #232a46;
-  --color-slate-950: #161a2e;
+  --color-indigo-50: #0d2726;
+  --color-indigo-100: #113837;
+  --color-indigo-200: #164a49;
+  --color-indigo-300: #1a5f5d;
+  --color-indigo-400: #1fb3b1;
+  --color-indigo-500: #2cc4c2;
+  --color-indigo-600: #39d5d3;
+  --color-indigo-700: #5ce7e5;
+  --color-indigo-800: #8ff0ee;
+  --color-indigo-900: #c2f8f7;
+  --color-indigo-950: #e5fcfc;
 
-  --color-emerald-50: #ecfaf4;
-  --color-emerald-100: #d7f5ea;
-  --color-emerald-600: #0c9b72;
-  --color-emerald-700: #0a8461;
-  --color-emerald-800: #06604a;
+  --color-emerald-50: #0e2f22;
+  --color-emerald-100: #14402f;
+  --color-emerald-600: #2bd48b;
+  --color-emerald-700: #4ce4a3;
+  --color-emerald-800: #86efc9;
 
-  --color-rose-50: #fef0f2;
-  --color-rose-100: #fddde3;
-  --color-rose-300: #f8a5b2;
-  --color-rose-600: #e8445a;
-  --color-rose-700: #c93049;
-  --color-rose-800: #99203a;
+  --color-rose-50: #331114;
+  --color-rose-100: #47181d;
+  --color-rose-300: #7a2830;
+  --color-rose-600: #ef5350;
+  --color-rose-700: #ff6b68;
+  --color-rose-800: #ffb4b2;
 
-  /* Letter-tile press shadow (signature element). */
-  --shadow-tile: 0 3px 0 0 var(--color-slate-900);
-  --shadow-tile-sm: 0 2px 0 0 var(--color-slate-900);
+  --color-amber-100: #3d2b10;
+  --color-amber-800: #fcd34d;
+
+  --color-sky-100: #12303d;
+  --color-sky-800: #7dd3fc;
+
+  /* Cyan glow (site's CTA treatment). */
+  --shadow-glow: 0 4px 12px rgba(57, 213, 211, 0.15);
 }
 
 body {
-  @apply bg-slate-100 font-sans text-slate-900 antialiased;
+  @apply font-sans text-slate-900 antialiased;
+  background-color: #040404;
+  background-image: linear-gradient(135deg, #040404 0%, rgba(57, 213, 211, 0.06) 50%, #040404 100%);
+  background-attachment: fixed;
 }
 
 h1, h2, h3 {
   @apply font-display;
-}
-
-/* Brand wordmark: the "Ver" gets a fill-in-the-blank underline. */
-.wordmark-blank {
-  text-decoration: underline;
-  text-decoration-color: var(--color-indigo-500);
-  text-decoration-thickness: 3px;
-  text-underline-offset: 5px;
 }

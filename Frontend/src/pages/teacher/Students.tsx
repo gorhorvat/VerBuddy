@@ -239,7 +239,7 @@ export default function Students() {
       )}
 
       {selected.size > 0 && (
-        <div className="sticky top-14 z-10 flex items-center justify-between rounded-xl bg-indigo-600 px-4 py-2.5 text-white shadow">
+        <div className="sticky top-14 z-10 flex items-center justify-between rounded-xl border border-indigo-600/60 bg-indigo-600/15 px-4 py-2.5 text-indigo-600 shadow backdrop-blur">
           <span className="text-sm font-semibold">{selected.size} selected</span>
           <div className="flex gap-2">
             <Button variant="secondary" className="!py-1.5" onClick={() => setSelected(new Set())}>Clear</Button>

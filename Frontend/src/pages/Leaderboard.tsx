@@ -65,14 +65,14 @@ export default function Leaderboard() {
           <button
             type="button"
             onClick={() => setTab('class')}
-            className={`flex-1 rounded-lg px-3 py-1.5 text-sm font-semibold ${tab === 'class' ? 'bg-white shadow-sm' : 'text-slate-500'}`}
+            className={`flex-1 rounded-lg px-3 py-1.5 text-sm font-semibold ${tab === 'class' ? 'bg-indigo-600/15 text-indigo-600' : 'text-slate-500'}`}
           >
             {data.className}
           </button>
           <button
             type="button"
             onClick={() => setTab('global')}
-            className={`flex-1 rounded-lg px-3 py-1.5 text-sm font-semibold ${tab === 'global' ? 'bg-white shadow-sm' : 'text-slate-500'}`}
+            className={`flex-1 rounded-lg px-3 py-1.5 text-sm font-semibold ${tab === 'global' ? 'bg-indigo-600/15 text-indigo-600' : 'text-slate-500'}`}
           >
             Everyone
           </button>

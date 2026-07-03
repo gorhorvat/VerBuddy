@@ -53,7 +53,7 @@ function CountdownBar({ deadline, total, onExpire }: { deadline: string; total: 
   const s = Math.floor(secondsLeft % 60)
 
   return (
-    <div className="sticky top-14 z-10 rounded-xl bg-white p-3 shadow-sm">
+    <div className="sticky top-14 z-10 rounded-xl border border-white/10 bg-[#0d0d0d]/90 p-3 backdrop-blur">
       <div className="mb-1 flex justify-between text-xs font-semibold">
         <span className={urgent ? 'text-rose-600' : 'text-slate-500'}>Time remaining</span>
         <span className={`tabular-nums ${urgent ? 'animate-pulse text-rose-600' : 'text-slate-700'}`}>

@@ -222,7 +222,7 @@ export default function TeacherGames() {
                   <Button variant="danger" onClick={() => setDeleteTarget(g)}>Delete</Button>
                 )}
                 <select
-                  className="ml-auto rounded-xl border border-slate-300 bg-white px-2 py-1.5 text-xs"
+                  className="ml-auto rounded-lg border border-white/20 bg-white/[0.04] px-2 py-1.5 text-xs"
                   value={g.categoryId ?? ''}
                   onChange={(e) =>
                     run(() => api(`/api/admin/games/${g.id}/category`, {
