@@ -25,7 +25,7 @@ function Board({ entries, myName }: { entries: LeaderboardEntry[]; myName?: stri
               {e.displayName}
               {isMe && <span className="ml-2 text-xs font-normal text-indigo-600">(you)</span>}
             </span>
-            <span className="rounded-full bg-indigo-50 px-3 py-1 text-sm font-bold text-indigo-700">
+            <span className="rounded-full bg-indigo-50 px-3 py-1 font-mono text-sm font-bold text-indigo-700">
               {e.totalXp} XP
             </span>
           </Card>

@@ -26,9 +26,24 @@ export default function LoginPage() {
     <div className="flex min-h-dvh items-center justify-center px-4">
       <Card className="w-full max-w-sm">
         <div className="mb-6 text-center">
-          <p className="text-4xl">📚</p>
-          <h1 className="mt-2 text-xl font-bold">VerBuddy</h1>
-          <p className="text-sm text-slate-500">Sign in with your class account</p>
+          <div className="mb-3 flex justify-center gap-1.5" aria-hidden>
+            {['W', 'O', 'R', 'D', 'S'].map((letter, i) => (
+              <span
+                key={letter}
+                className={`flex h-9 w-9 items-center justify-center rounded-lg border-2 border-slate-900 font-mono text-sm font-bold shadow-tile-sm ${
+                  i === 2 ? 'bg-indigo-600 text-white' : 'bg-white text-slate-900'
+                }`}
+              >
+                {letter}
+              </span>
+            ))}
+          </div>
+          <h1 className="text-3xl font-extrabold tracking-tight">
+            <span className="wordmark-blank">Ver</span>Buddy
+          </h1>
+          <p className="mt-1 text-sm font-medium text-slate-500">
+            Your word-game buddy for English class
+          </p>
         </div>
         <form onSubmit={onSubmit} className="space-y-4">
           <input

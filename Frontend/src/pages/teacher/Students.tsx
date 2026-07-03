@@ -271,7 +271,7 @@ export default function Students() {
                   {s.categoryName && ` · 📁 ${s.categoryName}`}
                 </p>
               </div>
-              <span className="shrink-0 rounded-full bg-indigo-50 px-3 py-1 text-sm font-bold text-indigo-700">
+              <span className="shrink-0 rounded-full bg-indigo-50 px-3 py-1 font-mono text-sm font-bold text-indigo-700">
                 {s.totalXp} XP
               </span>
             </div>

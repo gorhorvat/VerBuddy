@@ -22,18 +22,23 @@ export default function Layout() {
       ]
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
-    `flex flex-1 flex-col items-center gap-0.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition-colors sm:flex-initial sm:flex-row sm:gap-2 sm:text-sm ${
-      isActive ? 'bg-indigo-600 text-white' : 'text-slate-600 hover:bg-slate-200'
+    `flex flex-1 flex-col items-center gap-0.5 rounded-xl px-3 py-1.5 text-xs font-bold transition-colors sm:flex-initial sm:flex-row sm:gap-2 sm:text-sm ${
+      isActive
+        ? 'border-2 border-slate-900 bg-indigo-600 text-white shadow-tile-sm'
+        : 'border-2 border-transparent text-slate-600 hover:bg-slate-200'
     }`
 
   return (
     <div className="mx-auto flex min-h-dvh max-w-3xl flex-col">
-      <header className="sticky top-0 z-10 flex items-center justify-between gap-3 bg-white/90 px-4 py-3 shadow-sm backdrop-blur">
+      <header className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-slate-200 bg-white/90 px-4 py-3 backdrop-blur">
         <div className="min-w-0">
-          <p className="truncate text-sm font-bold text-indigo-700">
+          <p className="font-display text-base font-extrabold tracking-tight text-slate-900">
+            <span className="wordmark-blank">Ver</span>Buddy
+          </p>
+          <p className="truncate text-xs font-semibold text-indigo-700">
             {user?.displayName}
             {isAdmin && (
-              <span className="ml-2 rounded bg-indigo-100 px-1.5 py-0.5 text-xs">
+              <span className="ml-1.5 rounded bg-indigo-100 px-1.5 py-0.5 text-[10px] uppercase tracking-wide">
                 {isSuperAdmin ? 'Super Admin' : 'Admin'}
               </span>
             )}
@@ -49,7 +54,7 @@ export default function Layout() {
         </nav>
         <button
           onClick={logout}
-          className="rounded-xl px-3 py-1.5 text-sm font-semibold text-slate-500 hover:bg-slate-200"
+          className="rounded-xl px-3 py-1.5 text-sm font-bold text-slate-500 hover:bg-slate-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
         >
           Log out
         </button>

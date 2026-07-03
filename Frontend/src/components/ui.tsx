@@ -2,17 +2,21 @@ import type { ButtonHTMLAttributes, ReactNode } from 'react'
 
 export function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
   return (
-    <div className={`rounded-2xl bg-white p-4 shadow-sm sm:p-6 ${className}`}>{children}</div>
+    <div className={`rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6 ${className}`}>{children}</div>
   )
 }
 
 const buttonVariants = {
-  primary: 'bg-indigo-600 text-white hover:bg-indigo-700 disabled:bg-indigo-300',
-  secondary: 'bg-slate-200 text-slate-800 hover:bg-slate-300 disabled:text-slate-400',
+  primary: 'bg-indigo-600 text-white hover:bg-indigo-500 disabled:bg-indigo-300',
+  secondary: 'bg-white text-slate-800 hover:bg-slate-50 disabled:text-slate-400',
   danger: 'bg-rose-600 text-white hover:bg-rose-700 disabled:bg-rose-300',
   success: 'bg-emerald-600 text-white hover:bg-emerald-700 disabled:bg-emerald-300',
 } as const
 
+/**
+ * Letter-tile button: hard offset shadow that collapses on press, like
+ * pushing down a word-game tile. Disabled tiles lie flat.
+ */
 export function Button({
   variant = 'primary',
   className = '',
@@ -20,7 +24,7 @@ export function Button({
 }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: keyof typeof buttonVariants }) {
   return (
     <button
-      className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors disabled:cursor-not-allowed ${buttonVariants[variant]} ${className}`}
+      className={`rounded-xl border-2 border-slate-900 px-4 py-2.5 text-sm font-bold shadow-tile transition-[background-color,transform,box-shadow] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 enabled:active:translate-y-[3px] enabled:active:shadow-none motion-reduce:transition-none disabled:cursor-not-allowed disabled:border-slate-300 disabled:shadow-none ${buttonVariants[variant]} ${className}`}
       {...props}
     />
   )
@@ -61,7 +65,7 @@ export function Spinner() {
 }
 
 export const inputClass =
-  'w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200'
+  'w-full rounded-xl border-2 border-slate-300 bg-white px-3 py-2.5 text-sm font-medium focus:border-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-200'
 
 export const gameTypeLabels: Record<string, string> = {
   SingleChoice: 'Single Choice',
