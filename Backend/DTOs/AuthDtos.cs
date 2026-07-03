@@ -18,10 +18,12 @@ public sealed record AuthResponse(
     bool MustChangePassword);
 
 public sealed record MeResponse(
-    string Username,
     string DisplayName,
     int TotalXp,
-    IList<string> Roles);
+    int Level,
+    IList<string> Roles,
+    /// <summary>True until the student replaces their first-login password.</summary>
+    bool MustChangePassword);
 
 public sealed record ChangePasswordRequest(
     [Required] string CurrentPassword,

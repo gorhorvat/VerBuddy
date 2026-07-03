@@ -43,7 +43,7 @@ function FillInTheBlanksContent({
             {part}
             {i < parts.length - 1 && (
               <span className="mx-1 rounded-lg bg-indigo-600/10 px-2 py-1 font-semibold text-indigo-600">
-                blank {i + 1}
+                _____
               </span>
             )}
           </span>

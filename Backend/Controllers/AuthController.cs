@@ -55,7 +55,8 @@ public class AuthController(
             return Unauthorized();
 
         var roles = await userManager.GetRolesAsync(user);
-        return new MeResponse(user.UserName!, user.DisplayName, user.TotalXp, roles);
+        return new MeResponse(
+            user.DisplayName, user.TotalXp, LevelSystem.LevelForXp(user.TotalXp), roles, user.MustChangePassword);
     }
 
     /// <summary>

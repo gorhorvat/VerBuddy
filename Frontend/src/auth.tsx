@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, type ReactNode } from 'react'
-import { api, setAuthToken, type AuthResponse } from './api'
+import { api, setAuthToken, type AuthResponse, type MeResponse } from './api'
 
 export interface AuthUser {
   token: string
@@ -16,6 +16,8 @@ interface AuthContextValue {
   isSuperAdmin: boolean
   login: (username: string, password: string) => Promise<AuthUser>
   logout: () => void
+  /** Re-fetches /api/auth/me and updates the stored user (fresh XP, roles…). */
+  refreshMe: () => Promise<void>
   /** Called after a successful first-login password change. */
   clearMustChangePassword: () => void
 }
@@ -63,6 +65,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null)
   }
 
+  const refreshMe = async () => {
+    const me = await api<MeResponse>('/api/auth/me')
+    setUser((current) => {
+      if (!current) return current
+      const next: AuthUser = {
+        ...current,
+        displayName: me.displayName,
+        totalXp: me.totalXp,
+        roles: me.roles,
+        mustChangePassword: me.mustChangePassword,
+      }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
+      return next
+    })
+  }
+
   const clearMustChangePassword = () =>
     setUser((current) => {
       if (!current) return current
@@ -79,6 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isSuperAdmin: user?.roles.includes('SuperAdmin') ?? false,
         login,
         logout,
+        refreshMe,
         clearMustChangePassword,
       }}
     >

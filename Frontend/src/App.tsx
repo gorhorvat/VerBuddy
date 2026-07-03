@@ -8,6 +8,8 @@ import Leaderboard from './pages/Leaderboard'
 import StudentDashboard from './pages/student/StudentDashboard'
 import PlayGame from './pages/student/PlayGame'
 import AnswerReview from './pages/student/AnswerReview'
+import Rewards from './pages/student/Rewards'
+import RewardsAdmin from './pages/teacher/RewardsAdmin'
 import TeacherGames from './pages/teacher/TeacherGames'
 import GameEditor from './pages/teacher/GameEditor'
 import GameAnswers from './pages/teacher/GameAnswers'
@@ -45,6 +47,7 @@ function AppRoutes() {
             <Route path="/teacher/games/:id/answers" element={<GameAnswers />} />
             <Route path="/teacher/reviews" element={<Reviews />} />
             <Route path="/teacher/students" element={<Students />} />
+            <Route path="/teacher/rewards" element={<RewardsAdmin />} />
             {isSuperAdmin && <Route path="/superadmin/admins" element={<Admins />} />}
             <Route path="*" element={<Navigate to="/teacher/games" replace />} />
           </>
@@ -53,6 +56,7 @@ function AppRoutes() {
             <Route path="/games" element={<StudentDashboard />} />
             <Route path="/games/:id/play" element={<PlayGame />} />
             <Route path="/games/:id/answers" element={<AnswerReview />} />
+            <Route path="/rewards" element={<Rewards />} />
             <Route path="*" element={<Navigate to="/games" replace />} />
           </>
         )}

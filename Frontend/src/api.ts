@@ -18,6 +18,40 @@ export interface AuthResponse {
   mustChangePassword: boolean
 }
 
+export interface MeResponse {
+  displayName: string
+  totalXp: number
+  /** Computed server-side from totalXp; the client mirrors the math in lib/levels.ts. */
+  level: number
+  roles: string[]
+  mustChangePassword: boolean
+}
+
+export type RewardApplicationStatus = 'Pending' | 'Approved' | 'Denied'
+
+export interface Reward {
+  id: number
+  title: string
+  description: string | null
+  requiredLevel: number
+}
+
+export interface StudentReward extends Reward {
+  unlocked: boolean
+  myApplicationStatus: RewardApplicationStatus | null
+}
+
+export interface RewardApplication {
+  id: number
+  rewardId: number
+  rewardTitle: string
+  requiredLevel: number
+  studentDisplayName: string
+  status: RewardApplicationStatus
+  createdAtUtc: string
+  decidedAtUtc: string | null
+}
+
 export interface Category {
   id: number
   name: string

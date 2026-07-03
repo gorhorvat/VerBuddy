@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { api, type GameDetail, type GameType, type QuestionAdmin } from '../../api'
 import { Badge, Button, Card, ErrorText, Spinner, gameTypeLabels, inputClass } from '../../components/ui'
@@ -25,6 +25,15 @@ export default function GameEditor() {
   const [sessionChanged, setSessionChanged] = useState(false)
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false)
   const [reverting, setReverting] = useState(false)
+  const [saving, setSaving] = useState(false)
+
+  // Game meta (title/description) is edited locally and only persisted via
+  // PUT when "Save" is pressed — so "Cancel" restores it for free. Initialised
+  // once from the first load; reloads after question saves must not clobber
+  // in-progress edits.
+  const [title, setTitle] = useState('')
+  const [description, setDescription] = useState('')
+  const metaInitRef = useRef(false)
 
   // Question form state; editingId != null means we're editing an existing one.
   const [editingId, setEditingId] = useState<number | null>(null)
@@ -42,6 +51,11 @@ export default function GameEditor() {
       .then((g) => {
         setGame(g)
         setSnapshot((prev) => prev ?? g.questions.map((q) => ({ ...q })))
+        if (!metaInitRef.current) {
+          metaInitRef.current = true
+          setTitle(g.title)
+          setDescription(g.description ?? '')
+        }
       })
       .catch((e) => setError(e.message))
 
@@ -196,14 +210,42 @@ export default function GameEditor() {
     }
   }
 
-  const handleSave = () => {
-    // Questions are already persisted as each add/edit/delete is submitted —
-    // there's nothing left to flush, just leave the editor.
+  const metaDirty = (g: GameDetail) => title !== g.title || description !== (g.description ?? '')
+
+  const handleSave = async () => {
+    // Questions are already persisted as each add/edit/delete is submitted;
+    // only the game meta (title/description) still needs flushing via PUT.
+    if (!game) return
+    if (metaDirty(game)) {
+      if (!title.trim()) {
+        setError('Title is required.')
+        return
+      }
+      setSaving(true)
+      setError(null)
+      try {
+        await api(`/api/admin/games/${id}`, {
+          method: 'PUT',
+          body: {
+            title: title.trim(),
+            description: description.trim() || null,
+            timeLimitSeconds: game.timeLimitSeconds,
+            xpReward: game.xpReward,
+            requireFeedback: game.requireFeedback,
+            categoryId: game.categoryId,
+          },
+        })
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Saving the game failed.')
+        setSaving(false)
+        return
+      }
+    }
     navigate('/teacher/games')
   }
 
   const handleCancel = () => {
-    if (sessionChanged) {
+    if (sessionChanged || (game && metaDirty(game))) {
       setShowDiscardConfirm(true)
     } else {
       navigate('/teacher/games')
@@ -244,10 +286,35 @@ export default function GameEditor() {
   return (
     <div className="space-y-3">
       <Link to="/teacher/games" className="text-sm font-semibold text-indigo-600">← All games</Link>
-      <div className="flex items-center justify-between gap-2">
-        <h1 className="text-2xl font-bold">{game.title}</h1>
-        <Badge value={game.state} />
-      </div>
+      {editable ? (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <input
+              className={`${inputClass} font-display !text-2xl font-bold`}
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Game title"
+              aria-label="Game title"
+              required
+              maxLength={200}
+            />
+            <Badge value={game.state} />
+          </div>
+          <input
+            className={inputClass}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Description (optional)"
+            aria-label="Game description"
+            maxLength={1000}
+          />
+        </div>
+      ) : (
+        <div className="flex items-center justify-between gap-2">
+          <h1 className="text-2xl font-bold">{game.title}</h1>
+          <Badge value={game.state} />
+        </div>
+      )}
       <p className="text-xs text-slate-500">
         {gameTypeLabels[game.gameType]} · 📁 {game.categoryName ?? 'General'}
         {game.attemptCount > 0 && ` · ${game.attemptCount} recorded attempt${game.attemptCount === 1 ? '' : 's'}`}
@@ -373,18 +440,18 @@ export default function GameEditor() {
       />
 
       <div className="sticky bottom-20 z-20 flex gap-2 border border-white/10 bg-[#0a0a0a]/95 p-3 backdrop-blur-md sm:bottom-4">
-        <Button variant="secondary" className="flex-1" onClick={handleCancel} disabled={reverting}>
+        <Button variant="secondary" className="flex-1" onClick={handleCancel} disabled={reverting || saving}>
           {reverting ? 'Discarding…' : 'Cancel'}
         </Button>
-        <Button className="flex-1" onClick={handleSave} disabled={reverting}>
-          Save
+        <Button className="flex-1" onClick={handleSave} disabled={reverting || saving}>
+          {saving ? 'Saving…' : 'Save'}
         </Button>
       </div>
 
       <ConfirmDialog
         open={showDiscardConfirm}
         title="Discard changes?"
-        message="Questions added, edited, or deleted during this visit will be reverted to how they were when you opened this editor."
+        message="Title, description and questions added, edited, or deleted during this visit will be reverted to how they were when you opened this editor."
         confirmLabel="Discard changes"
         onCancel={() => setShowDiscardConfirm(false)}
         onConfirm={confirmDiscard}

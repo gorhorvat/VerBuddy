@@ -11,6 +11,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<Question> Questions => Set<Question>();
     public DbSet<StudentAttempt> StudentAttempts => Set<StudentAttempt>();
     public DbSet<Category> Categories => Set<Category>();
+    public DbSet<Reward> Rewards => Set<Reward>();
+    public DbSet<RewardApplication> RewardApplications => Set<RewardApplication>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -122,6 +124,31 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
                 .WithMany(u => u.Attempts)
                 .HasForeignKey(a => a.StudentId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<Reward>(reward =>
+        {
+            reward.Property(r => r.Title).IsRequired().HasMaxLength(200);
+            reward.Property(r => r.Description).HasMaxLength(1000);
+        });
+
+        builder.Entity<RewardApplication>(application =>
+        {
+            application.Property(a => a.Status).HasConversion<string>().HasMaxLength(20);
+
+            // Deleting a reward removes every application filed against it.
+            application.HasOne(a => a.Reward)
+                .WithMany(r => r.Applications)
+                .HasForeignKey(a => a.RewardId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Deleting a student erases their applications too (GDPR erasure).
+            application.HasOne(a => a.Student)
+                .WithMany()
+                .HasForeignKey(a => a.StudentId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            application.HasIndex(a => new { a.StudentId, a.RewardId });
         });
     }
 }

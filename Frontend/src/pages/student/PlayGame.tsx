@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { api, type AttemptResult, type GameType, type StartAttempt } from '../../api'
+import { useAuth } from '../../auth'
+import { levelForXp } from '../../lib/levels'
 import { Button, Card, ErrorText, Spinner } from '../../components/ui'
+import LevelUpModal from '../../components/LevelUpModal'
 import {
   FillInTheBlanksInput,
   MultipleChoiceInput,
@@ -73,9 +76,11 @@ function CountdownBar({ deadline, total, onExpire }: { deadline: string; total: 
 export default function PlayGame() {
   const { id } = useParams() as { id: string }
   const gameType = useGameType(id)
+  const { user, refreshMe } = useAuth()
   const [start, setStart] = useState<StartAttempt | null>(null)
   const [answers, setAnswers] = useState<Record<number, unknown>>({})
   const [result, setResult] = useState<AttemptResult | null>(null)
+  const [levelUp, setLevelUp] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const submittedRef = useRef(false)
@@ -102,14 +107,25 @@ export default function PlayGame() {
           answer,
         })),
       }
-      setResult(await api<AttemptResult>(`/api/student/games/${id}/submit`, { method: 'POST', body: payload }))
+      const res = await api<AttemptResult>(`/api/student/games/${id}/submit`, { method: 'POST', body: payload })
+      if (res.earnedXp > 0 && user) {
+        // The stored totalXp is the pre-game value, so old vs new level can be
+        // computed locally before refreshMe() overwrites it with fresh data.
+        const oldLevel = levelForXp(user.totalXp)
+        const newLevel = levelForXp(user.totalXp + res.earnedXp)
+        if (newLevel > oldLevel) setLevelUp(newLevel)
+        refreshMe().catch(() => {
+          /* header will refresh on next mount */
+        })
+      }
+      setResult(res)
     } catch (e) {
       submittedRef.current = false
       setError(e instanceof Error ? e.message : 'Submission failed.')
     } finally {
       setSubmitting(false)
     }
-  }, [answers, id])
+  }, [answers, id, user, refreshMe])
 
   if (error && !result) {
     return (
@@ -124,7 +140,9 @@ export default function PlayGame() {
   if (result) {
     const perfect = result.score === result.maxScore
     return (
-      <Card className="space-y-4 text-center">
+      <>
+        {levelUp !== null && <LevelUpModal level={levelUp} onClose={() => setLevelUp(null)} />}
+        <Card className="space-y-4 text-center">
         <p className="text-5xl">
           {result.status === 'Invalidated' ? '⏰' : perfect ? '🎉' : result.status === 'PendingReview' ? '🕵️' : '👍'}
         </p>
@@ -150,11 +168,12 @@ export default function PlayGame() {
             )}
           </>
         )}
-        <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
-          <Link to="/games"><Button variant="secondary" className="w-full sm:w-auto">Back to games</Button></Link>
-          <Link to="/leaderboard"><Button className="w-full sm:w-auto">View leaderboard</Button></Link>
-        </div>
-      </Card>
+          <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
+            <Link to="/games"><Button variant="secondary" className="w-full sm:w-auto">Back to games</Button></Link>
+            <Link to="/leaderboard"><Button className="w-full sm:w-auto">View leaderboard</Button></Link>
+          </div>
+        </Card>
+      </>
     )
   }
 
