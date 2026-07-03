@@ -54,10 +54,15 @@ if (!string.IsNullOrEmpty(builder.Configuration["Email:Smtp:Host"]))
 else
     builder.Services.AddScoped<IEmailSender, FilePickupEmailSender>();
 
-// ── CORS for the React dev server (Vite) ─────────────────────────────────
+// ── CORS for the React frontend ───────────────────────────────────────────
+// Allowed origins come from configuration so production (Vercel) domains can
+// be added without a code change: Cors:Origins (semicolon-separated) plus the
+// Vite dev server as a fallback.
 const string FrontendCors = "Frontend";
+var corsOrigins = (builder.Configuration["Cors:Origins"] ?? "http://localhost:5173")
+    .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 builder.Services.AddCors(options => options.AddPolicy(FrontendCors, policy => policy
-    .WithOrigins("http://localhost:5173")
+    .WithOrigins(corsOrigins)
     .AllowAnyHeader()
     .AllowAnyMethod()));
 
@@ -75,8 +80,12 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+}
 
-    // Apply migrations and seed roles, demo accounts and the sample game.
+// Apply migrations and seed roles + accounts on every startup — idempotent,
+// and production (Azure) relies on it to migrate the database and create the
+// configured SuperAdmin.
+{
     using var scope = app.Services.CreateScope();
     await DbSeeder.SeedAsync(
         scope.ServiceProvider.GetRequiredService<AppDbContext>(),

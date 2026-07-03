@@ -41,23 +41,27 @@ public static class DbSeeder
                 await roleManager.CreateAsync(new IdentityRole(role));
         }
 
-        // ── Teacher account (PII fields populated — admin scope only) ─────
-        var teacher = await userManager.FindByNameAsync("teacher.anna");
-        if (teacher is null)
+        // ── Demo teacher account (dev/tests only — Seed:DemoAccounts) ─────
+        // Never seeded in production: known password.
+        if (configuration.GetValue("Seed:DemoAccounts", false))
         {
-            teacher = new ApplicationUser
+            var teacher = await userManager.FindByNameAsync("teacher.anna");
+            if (teacher is null)
             {
-                UserName = "teacher.anna",
-                Email = "anna@example-school.test",
-                FirstName = "Anna",
-                LastName = "Kovacs",
-                DisplayName = "Ms. Anna",
-                EmailConfirmed = true
-            };
-            await userManager.CreateAsync(teacher, "ChangeMe!123");
+                teacher = new ApplicationUser
+                {
+                    UserName = "teacher.anna",
+                    Email = "anna@example-school.test",
+                    FirstName = "Anna",
+                    LastName = "Kovacs",
+                    DisplayName = "Ms. Anna",
+                    EmailConfirmed = true
+                };
+                await userManager.CreateAsync(teacher, "ChangeMe!123");
+            }
+            if (!await userManager.IsInRoleAsync(teacher, AppRoles.Admin))
+                await userManager.AddToRoleAsync(teacher, AppRoles.Admin);
         }
-        if (!await userManager.IsInRoleAsync(teacher, AppRoles.Admin))
-            await userManager.AddToRoleAsync(teacher, AppRoles.Admin);
 
         // ── SuperAdmin (from configuration — never hardcoded) ─────────────
         var superUsername = configuration["SuperAdmin:UserName"];

@@ -61,6 +61,7 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         builder.UseSetting("SuperAdmin:UserName", "superadmin");
         builder.UseSetting("SuperAdmin:Email", "superadmin@test.local");
         builder.UseSetting("SuperAdmin:Password", "Super!Pass123");
+        builder.UseSetting("Seed:DemoAccounts", "true"); // teacher.anna fixture.
 
         builder.ConfigureServices(services =>
         {
