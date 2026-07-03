@@ -4,6 +4,7 @@ import { api, type Category, type GameSummary, type GameType } from '../../api'
 import { Badge, Button, Card, ErrorText, Spinner, gameTypeLabels, inputClass } from '../../components/ui'
 import AvatarStack from '../../components/AvatarStack'
 import ConfirmDialog from '../../components/ConfirmDialog'
+import Modal from '../../components/Modal'
 
 export default function TeacherGames() {
   const [games, setGames] = useState<GameSummary[] | null>(null)
@@ -93,22 +94,19 @@ export default function TeacherGames() {
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">🎲 Games</h1>
-        <div className="flex gap-2">
-          <Button variant="secondary" onClick={() => setShowCategories((v) => !v)}>
+        <div className="flex gap-3">
+          <Button variant="secondary" onClick={() => setShowCategories(true)}>
             📁 Categories
           </Button>
-          <Button onClick={() => setShowCreate((v) => !v)} variant={showCreate ? 'secondary' : 'primary'}>
-            {showCreate ? 'Cancel' : '+ New game'}
-          </Button>
+          <Button onClick={() => setShowCreate(true)}>+ New game</Button>
         </div>
       </div>
       <ErrorText message={error} />
 
-      {showCategories && (
-        <Card className="space-y-3">
-          <h2 className="font-bold">Categories (classes)</h2>
+      <Modal open={showCategories} title="Categories (classes)" onClose={() => setShowCategories(false)}>
+        <div className="space-y-4">
           {categories.map((c) => (
             <div key={c.id} className="flex items-center justify-between gap-2 rounded-xl bg-slate-50 px-3 py-2">
               <span className="text-sm font-semibold">{c.name}</span>
@@ -131,15 +129,14 @@ export default function TeacherGames() {
             <input className={inputClass} placeholder="New category, e.g. 5th Grade A" value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} maxLength={100} />
             <Button type="submit" variant="secondary" className="shrink-0">Add</Button>
           </form>
-          <p className="text-xs text-slate-400">
+          <p className="text-sm text-slate-400">
             Deleting a category never deletes its games or students — they move back to General/unassigned.
           </p>
-        </Card>
-      )}
+        </div>
+      </Modal>
 
-      {showCreate && (
-        <Card>
-          <form onSubmit={create} className="space-y-3">
+      <Modal open={showCreate} title="New game" onClose={() => setShowCreate(false)}>
+        <form onSubmit={create} className="space-y-4">
             <input className={inputClass} placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} required maxLength={200} />
             <input className={inputClass} placeholder="Description (optional)" value={description} onChange={(e) => setDescription(e.target.value)} maxLength={1000} />
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -173,8 +170,7 @@ export default function TeacherGames() {
             </label>
             <Button type="submit" className="w-full">Create draft</Button>
           </form>
-        </Card>
-      )}
+      </Modal>
 
       {groups.map((group) => (
         <section key={group.name} className="space-y-3">

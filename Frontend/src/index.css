@@ -52,6 +52,7 @@
   --color-rose-700: #ff6b68;
   --color-rose-800: #ffb4b2;
 
+  --color-amber-50: #33240d;
   --color-amber-100: #3d2b10;
   --color-amber-800: #fcd34d;
 
@@ -60,6 +61,17 @@
 
   /* Cyan glow (site's CTA treatment). */
   --shadow-glow: 0 4px 12px rgba(57, 213, 211, 0.15);
+
+  /* Fully sharp corners everywhere (rounded-full stays for true circles:
+     avatars, spinner, radio dots). */
+  --radius-xs: 0;
+  --radius-sm: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
+  --radius-xl: 0;
+  --radius-2xl: 0;
+  --radius-3xl: 0;
+  --radius-4xl: 0;
 }
 
 html {

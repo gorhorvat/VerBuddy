@@ -60,9 +60,9 @@ function CountdownBar({ deadline, total, onExpire }: { deadline: string; total: 
           {m}:{s.toString().padStart(2, '0')}
         </span>
       </div>
-      <div className="h-2 overflow-hidden rounded-full bg-slate-200">
+      <div className="h-2 overflow-hidden rounded-none bg-slate-200">
         <div
-          className={`h-full rounded-full transition-[width] duration-300 ${urgent ? 'bg-rose-500' : 'bg-indigo-500'}`}
+          className={`h-full rounded-none transition-[width] duration-300 ${urgent ? 'bg-rose-500' : 'bg-indigo-500'}`}
           style={{ width: `${pct}%` }}
         />
       </div>
@@ -140,7 +140,7 @@ export default function PlayGame() {
             <h1 className="text-xl font-bold">
               {result.score} / {result.maxScore}
             </h1>
-            <p className="inline-block rounded-full bg-indigo-50 px-4 py-1.5 font-bold text-indigo-700">
+            <p className="inline-block rounded-none bg-indigo-50 px-4 py-1.5 font-bold text-indigo-700">
               +{result.earnedXp} XP
             </p>
             {result.status === 'PendingReview' && (

@@ -152,13 +152,13 @@ export default function Admins() {
 
             <div className="flex flex-wrap items-center gap-2">
                 {!a.isActive ? (
-                  <span className="rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-semibold text-rose-800">Deactivated</span>
+                  <span className="rounded-none bg-rose-100 px-2.5 py-0.5 text-xs font-semibold text-rose-800">Deactivated</span>
                 ) : a.activatedAt === null ? (
-                  <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-800">Not activated</span>
+                  <span className="rounded-none bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-800">Not activated</span>
                 ) : a.mustChangePassword ? (
-                  <span className="rounded-full bg-sky-100 px-2.5 py-0.5 text-xs font-semibold text-sky-800">Awaiting first login</span>
+                  <span className="rounded-none bg-sky-100 px-2.5 py-0.5 text-xs font-semibold text-sky-800">Awaiting first login</span>
                 ) : (
-                  <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-800">Active</span>
+                  <span className="rounded-none bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-800">Active</span>
                 )}
                 {a.isActive && (
                   <>

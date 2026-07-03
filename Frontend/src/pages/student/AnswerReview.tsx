@@ -39,7 +39,7 @@ export default function AnswerReview() {
         <span className="text-sm">
           Your score: <b>{data.result.score}/{data.result.maxScore}</b>
         </span>
-        <span className="rounded-full bg-indigo-50 px-3 py-1 text-sm font-bold text-indigo-700">
+        <span className="rounded-none bg-indigo-50 px-3 py-1 text-sm font-bold text-indigo-700">
           +{data.result.earnedXp} XP
         </span>
       </Card>

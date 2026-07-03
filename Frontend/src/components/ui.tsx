@@ -41,7 +41,7 @@ const badgeColors: Record<string, string> = {
 export function Badge({ value, label }: { value: string; label?: string }) {
   return (
     <span
-      className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${badgeColors[value] ?? 'bg-slate-200 text-slate-700'}`}
+      className={`inline-block rounded-none px-2.5 py-0.5 text-xs font-semibold ${badgeColors[value] ?? 'bg-slate-200 text-slate-700'}`}
     >
       {label ?? value.replace(/([a-z])([A-Z])/g, '$1 $2')}
     </span>
