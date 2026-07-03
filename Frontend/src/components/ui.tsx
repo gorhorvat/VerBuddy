@@ -48,6 +48,24 @@ export function Badge({ value, label }: { value: string; label?: string }) {
   )
 }
 
+/** Labelled form field: caption above the input, for modal forms. */
+export function Field({
+  label,
+  className = '',
+  children,
+}: {
+  label: string
+  className?: string
+  children: ReactNode
+}) {
+  return (
+    <label className={`block ${className}`}>
+      <span className="mb-1.5 block text-sm font-semibold text-slate-500">{label}</span>
+      {children}
+    </label>
+  )
+}
+
 export function ErrorText({ message }: { message: string | null }) {
   if (!message) return null
   return <p className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{message}</p>

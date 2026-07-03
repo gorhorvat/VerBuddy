@@ -7,7 +7,7 @@ import {
   type ImportStudentsResult,
   type StudentAdmin,
 } from '../../api'
-import { Button, Card, ErrorText, Spinner, inputClass } from '../../components/ui'
+import { Button, Card, ErrorText, Field, Spinner, inputClass } from '../../components/ui'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import Modal from '../../components/Modal'
 
@@ -214,17 +214,29 @@ export default function Students() {
       <Modal open={showCreate} title="Add student" onClose={() => setShowCreate(false)}>
         <form onSubmit={create} className="space-y-4">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <input className={inputClass} placeholder="Login username *" value={form.username} onChange={set('username')} required minLength={3} maxLength={50} />
-            <input className={inputClass} type="email" placeholder="Email (needed for activation)" value={form.email} onChange={set('email')} />
-            <input className={inputClass} placeholder="First name" value={form.firstName} onChange={set('firstName')} />
-            <input className={inputClass} placeholder="Last name" value={form.lastName} onChange={set('lastName')} />
-            <input className={inputClass} placeholder="Nickname (empty = auto-generate)" value={form.displayName} onChange={set('displayName')} maxLength={32} />
-            <select className={inputClass} value={form.categoryId} onChange={set('categoryId')}>
-              <option value="">No class</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
+            <Field label="Login username *">
+              <input className={inputClass} value={form.username} onChange={set('username')} required minLength={3} maxLength={50} />
+            </Field>
+            <Field label="Email">
+              <input className={inputClass} type="email" placeholder="Needed for activation" value={form.email} onChange={set('email')} />
+            </Field>
+            <Field label="First name">
+              <input className={inputClass} value={form.firstName} onChange={set('firstName')} />
+            </Field>
+            <Field label="Last name">
+              <input className={inputClass} value={form.lastName} onChange={set('lastName')} />
+            </Field>
+            <Field label="Nickname">
+              <input className={inputClass} placeholder="Empty = auto-generate" value={form.displayName} onChange={set('displayName')} maxLength={32} />
+            </Field>
+            <Field label="Class">
+              <select className={inputClass} value={form.categoryId} onChange={set('categoryId')}>
+                <option value="">No class</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </Field>
           </div>
           <p className="text-sm text-slate-500">
             No password needed — activating the account emails the student a temporary
@@ -274,13 +286,13 @@ export default function Students() {
             </div>
             <div className="flex flex-wrap items-center gap-2 pl-7">
               {!s.isActive ? (
-                <span className="rounded-none bg-rose-100 px-2.5 py-0.5 text-xs font-semibold text-rose-800">Deactivated</span>
+                <span className="inline-flex items-center rounded-none border border-transparent bg-rose-100 px-4 py-1.5 text-sm font-semibold text-rose-800">Deactivated</span>
               ) : s.activatedAt === null ? (
-                <span className="rounded-none bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-800">Not activated</span>
+                <span className="inline-flex items-center rounded-none border border-transparent bg-amber-100 px-4 py-1.5 text-sm font-semibold text-amber-800">Not activated</span>
               ) : s.mustChangePassword ? (
-                <span className="rounded-none bg-sky-100 px-2.5 py-0.5 text-xs font-semibold text-sky-800">Awaiting first login</span>
+                <span className="inline-flex items-center rounded-none border border-transparent bg-sky-100 px-4 py-1.5 text-sm font-semibold text-sky-800">Awaiting first login</span>
               ) : (
-                <span className="rounded-none bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-800">Active</span>
+                <span className="inline-flex items-center rounded-none border border-transparent bg-emerald-100 px-4 py-1.5 text-sm font-semibold text-emerald-800">Active</span>
               )}
               {s.isActive && (
                 <>
@@ -339,16 +351,26 @@ export default function Students() {
       <Modal open={editId !== null} title="Edit student" onClose={() => setEditId(null)}>
         <form onSubmit={saveEdit} className="space-y-4">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <input className={inputClass} placeholder="First name" value={editForm.firstName} onChange={setEdit('firstName')} />
-            <input className={inputClass} placeholder="Last name" value={editForm.lastName} onChange={setEdit('lastName')} />
-            <input className={inputClass} type="email" placeholder="Email" value={editForm.email} onChange={setEdit('email')} />
-            <input className={inputClass} placeholder="Nickname" value={editForm.displayName} onChange={setEdit('displayName')} maxLength={32} />
-            <select className={inputClass} value={editForm.categoryId} onChange={setEdit('categoryId')}>
-              <option value="">No class</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
+            <Field label="First name">
+              <input className={inputClass} value={editForm.firstName} onChange={setEdit('firstName')} />
+            </Field>
+            <Field label="Last name">
+              <input className={inputClass} value={editForm.lastName} onChange={setEdit('lastName')} />
+            </Field>
+            <Field label="Email">
+              <input className={inputClass} type="email" value={editForm.email} onChange={setEdit('email')} />
+            </Field>
+            <Field label="Nickname">
+              <input className={inputClass} value={editForm.displayName} onChange={setEdit('displayName')} maxLength={32} />
+            </Field>
+            <Field label="Class">
+              <select className={inputClass} value={editForm.categoryId} onChange={setEdit('categoryId')}>
+                <option value="">No class</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </Field>
           </div>
           <div className="flex justify-end gap-3">
             <Button type="button" variant="secondary" onClick={() => setEditId(null)}>Cancel</Button>

@@ -22,7 +22,9 @@ function AppRoutes() {
     return (
       <Routes>
         <Route path="/reset-password" element={<ResetPasswordPage />} />
-        <Route path="*" element={<LoginPage />} />
+        <Route path="/" element={<LoginPage />} />
+        {/* Clean the URL: any deep link without a session lands on "/". */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     )
   }

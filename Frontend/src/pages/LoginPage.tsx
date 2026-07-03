@@ -30,12 +30,14 @@ export default function LoginPage() {
       />
       <Card className="relative w-full max-w-sm">
         <div className="mb-6 text-center">
+          <div className="mb-4 flex justify-center" aria-hidden>
+            <div className="flex h-16 w-16 items-center justify-center border-2 border-indigo-600 bg-indigo-600/10 shadow-glow">
+              <span className="font-display text-4xl font-extrabold leading-none text-indigo-600">V</span>
+            </div>
+          </div>
           <h1 className="text-3xl font-extrabold tracking-tight">
             <span className="text-indigo-600">Ver</span>Buddy
           </h1>
-          <p className="mt-1 text-sm font-medium text-slate-500">
-            Your word-game buddy for English class
-          </p>
         </div>
         <form onSubmit={onSubmit} className="space-y-4">
           <input

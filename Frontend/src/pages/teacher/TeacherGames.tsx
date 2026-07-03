@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { api, type Category, type GameSummary, type GameType } from '../../api'
-import { Badge, Button, Card, ErrorText, Spinner, gameTypeLabels, inputClass } from '../../components/ui'
+import { Badge, Button, Card, ErrorText, Field, Spinner, gameTypeLabels, inputClass } from '../../components/ui'
 import AvatarStack from '../../components/AvatarStack'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import Modal from '../../components/Modal'
@@ -125,8 +125,10 @@ export default function TeacherGames() {
           {categories.length === 0 && (
             <p className="text-xs text-slate-500">No categories yet — games live under "General".</p>
           )}
-          <form onSubmit={addCategory} className="flex gap-2">
-            <input className={inputClass} placeholder="New category, e.g. 5th Grade A" value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} maxLength={100} />
+          <form onSubmit={addCategory} className="flex items-end gap-2">
+            <Field label="New category" className="flex-1">
+              <input className={inputClass} placeholder="e.g. 5th Grade A" value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} maxLength={100} />
+            </Field>
             <Button type="submit" variant="secondary" className="shrink-0">Add</Button>
           </form>
           <p className="text-sm text-slate-400">
@@ -137,22 +139,34 @@ export default function TeacherGames() {
 
       <Modal open={showCreate} title="New game" onClose={() => setShowCreate(false)}>
         <form onSubmit={create} className="space-y-4">
-            <input className={inputClass} placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} required maxLength={200} />
-            <input className={inputClass} placeholder="Description (optional)" value={description} onChange={(e) => setDescription(e.target.value)} maxLength={1000} />
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <select className={inputClass} value={gameType} onChange={(e) => setGameType(e.target.value as GameType)}>
-                {Object.entries(gameTypeLabels).map(([value, label]) => (
-                  <option key={value} value={value}>{label}</option>
-                ))}
-              </select>
-              <select className={inputClass} value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
-                <option value="">General</option>
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
-              <input className={inputClass} type="number" min="0" max="14400" placeholder="Time limit (sec, empty = untimed)" value={timeLimit} onChange={(e) => setTimeLimit(e.target.value)} />
-              <input className={inputClass} type="number" min="0" max="10000" placeholder="XP reward" value={xpReward} onChange={(e) => setXpReward(e.target.value)} required />
+            <Field label="Title *">
+              <input className={inputClass} placeholder="e.g. Irregular verbs quiz" value={title} onChange={(e) => setTitle(e.target.value)} required maxLength={200} />
+            </Field>
+            <Field label="Description">
+              <input className={inputClass} placeholder="Optional" value={description} onChange={(e) => setDescription(e.target.value)} maxLength={1000} />
+            </Field>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field label="Game type">
+                <select className={inputClass} value={gameType} onChange={(e) => setGameType(e.target.value as GameType)}>
+                  {Object.entries(gameTypeLabels).map(([value, label]) => (
+                    <option key={value} value={value}>{label}</option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Category (class)">
+                <select className={inputClass} value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
+                  <option value="">General</option>
+                  {categories.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Time limit (seconds)">
+                <input className={inputClass} type="number" min="0" max="14400" placeholder="Empty = untimed" value={timeLimit} onChange={(e) => setTimeLimit(e.target.value)} />
+              </Field>
+              <Field label="XP reward *">
+                <input className={inputClass} type="number" min="0" max="10000" value={xpReward} onChange={(e) => setXpReward(e.target.value)} required />
+              </Field>
             </div>
             <label className="flex cursor-pointer items-start gap-3 rounded-xl bg-slate-50 px-4 py-3">
               <input
@@ -171,6 +185,14 @@ export default function TeacherGames() {
             <Button type="submit" className="w-full">Create draft</Button>
           </form>
       </Modal>
+
+      {games.length === 0 && (
+        <Card>
+          <p className="text-base text-slate-500">
+            No games yet — click "+ New game" to create your first one.
+          </p>
+        </Card>
+      )}
 
       {groups.map((group) => (
         <section key={group.name} className="space-y-3">
