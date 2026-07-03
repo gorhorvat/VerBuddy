@@ -1,4 +1,5 @@
 using System.Net;
+using System.Security.Claims;
 using Backend.Data;
 using Backend.DTOs;
 using Backend.Models;
@@ -76,6 +77,47 @@ public class AdminStudentsController(
         }
 
         return new ImportStudentsResult(created, errors);
+    }
+
+    /// <summary>Updates PII, nickname (uniqueness enforced) and class assignment.</summary>
+    [HttpPut("{id}")]
+    public async Task<ActionResult<StudentAdminDto>> Update(string id, UpdateStudentRequest request)
+    {
+        var student = await FindStudentAsync(id);
+        if (student is null)
+            return NotFound();
+
+        if (request.CategoryId is { } categoryId)
+        {
+            // Admins may only file students into their own classes; SuperAdmin
+            // into any. "Unknown category." for both so foreign class ids don't
+            // leak their existence.
+            var callerId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+            var allowed = User.IsInRole(AppRoles.SuperAdmin)
+                ? await db.Categories.AnyAsync(c => c.Id == categoryId)
+                : await db.Categories.AnyAsync(c => c.Id == categoryId && c.TeacherId == callerId);
+            if (!allowed)
+                return BadRequest(new { message = "Unknown category." });
+        }
+
+        var displayName = request.DisplayName?.Trim();
+        if (!string.IsNullOrEmpty(displayName) && displayName != student.DisplayName)
+        {
+            if (await userManager.Users.AnyAsync(u => u.Id != student.Id && u.DisplayName == displayName))
+                return Conflict(new { message = $"Display name '{displayName}' is already taken." });
+            student.DisplayName = displayName;
+        }
+
+        student.FirstName = request.FirstName;
+        student.LastName = request.LastName;
+        student.Email = request.Email;
+        student.CategoryId = request.CategoryId;
+
+        var result = await userManager.UpdateAsync(student);
+        if (!result.Succeeded)
+            return BadRequest(new { errors = result.Errors.Select(e => e.Description) });
+
+        return await ToDtoWithCategoryAsync(student);
     }
 
     /// <summary>

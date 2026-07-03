@@ -23,8 +23,12 @@ public class AdminCategoriesController(AppDbContext db) : ControllerBase
     [HttpGet]
     public async Task<ActionResult<List<CategoryDto>>> List()
     {
-        return await db.Categories
-            .Where(c => c.TeacherId == TeacherId)
+        // SuperAdmin owns no categories but manages everyone's — sees all.
+        var categories = User.IsInRole(AppRoles.SuperAdmin)
+            ? db.Categories
+            : db.Categories.Where(c => c.TeacherId == TeacherId);
+
+        return await categories
             .OrderBy(c => c.Name)
             .Select(c => new CategoryDto(c.Id, c.Name, c.Games.Count, c.Students.Count))
             .ToListAsync();

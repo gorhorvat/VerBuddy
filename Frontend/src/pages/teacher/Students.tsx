@@ -23,6 +23,10 @@ export default function Students() {
   const [showCreate, setShowCreate] = useState(false)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [deleteTarget, setDeleteTarget] = useState<StudentAdmin | null>(null)
+  const [editId, setEditId] = useState<string | null>(null)
+  const [editForm, setEditForm] = useState({
+    firstName: '', lastName: '', email: '', displayName: '', categoryId: '',
+  })
   const [busyIds, setBusyIds] = useState<Set<string>>(new Set())
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [importCategoryId, setImportCategoryId] = useState('')
@@ -65,6 +69,38 @@ export default function Students() {
 
   const set = (key: keyof typeof form) => (e: { target: { value: string } }) =>
     setForm((f) => ({ ...f, [key]: e.target.value }))
+
+  const setEdit = (key: keyof typeof editForm) => (e: { target: { value: string } }) =>
+    setEditForm((f) => ({ ...f, [key]: e.target.value }))
+
+  const startEdit = (s: StudentAdmin) => {
+    setEditId(s.id)
+    setEditForm({
+      firstName: s.firstName ?? '',
+      lastName: s.lastName ?? '',
+      email: s.email ?? '',
+      displayName: s.displayName,
+      categoryId: s.categoryId !== null ? String(s.categoryId) : '',
+    })
+  }
+
+  const saveEdit = (e: FormEvent) => {
+    e.preventDefault()
+    const id = editId!
+    run(async () => {
+      await api(`/api/admin/students/${id}`, {
+        method: 'PUT',
+        body: {
+          firstName: editForm.firstName || null,
+          lastName: editForm.lastName || null,
+          email: editForm.email || null,
+          displayName: editForm.displayName || null,
+          categoryId: editForm.categoryId ? Number(editForm.categoryId) : null,
+        },
+      })
+      setEditId(null)
+    }, 'Student updated.')
+  }
 
   const create = (e: FormEvent) => {
     e.preventDefault()
@@ -239,6 +275,26 @@ export default function Students() {
                 {s.totalXp} XP
               </span>
             </div>
+            {editId === s.id ? (
+              <form onSubmit={saveEdit} className="space-y-2 pl-7">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <input className={inputClass} placeholder="First name" value={editForm.firstName} onChange={setEdit('firstName')} />
+                  <input className={inputClass} placeholder="Last name" value={editForm.lastName} onChange={setEdit('lastName')} />
+                  <input className={inputClass} type="email" placeholder="Email" value={editForm.email} onChange={setEdit('email')} />
+                  <input className={inputClass} placeholder="Nickname" value={editForm.displayName} onChange={setEdit('displayName')} maxLength={32} />
+                  <select className={inputClass} value={editForm.categoryId} onChange={setEdit('categoryId')}>
+                    <option value="">No class</option>
+                    {categories.map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex gap-2">
+                  <Button type="submit" className="!px-3 !py-1 text-xs">Save</Button>
+                  <Button type="button" variant="secondary" className="!px-3 !py-1 text-xs" onClick={() => setEditId(null)}>Cancel</Button>
+                </div>
+              </form>
+            ) : (
             <div className="flex flex-wrap items-center gap-2 pl-7">
               {!s.isActive ? (
                 <span className="rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-semibold text-rose-800">Deactivated</span>
@@ -287,6 +343,9 @@ export default function Students() {
                   ▶ Reactivate
                 </Button>
               )}
+              <Button variant="secondary" className="!px-3 !py-1 text-xs" disabled={busy} onClick={() => startEdit(s)}>
+                ✏️ Edit
+              </Button>
               <Button
                 variant="danger"
                 className="!px-3 !py-1 text-xs"
@@ -296,6 +355,7 @@ export default function Students() {
                 🗑 Delete
               </Button>
             </div>
+            )}
           </Card>
         )
       })}

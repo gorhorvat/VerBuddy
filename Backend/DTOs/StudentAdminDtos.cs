@@ -19,6 +19,14 @@ public sealed record CreateStudentRequest(
     /// <summary>The student's class; null = unassigned.</summary>
     int? CategoryId);
 
+public sealed record UpdateStudentRequest(
+    [MaxLength(100)] string? FirstName,
+    [MaxLength(100)] string? LastName,
+    [EmailAddress, MaxLength(256)] string? Email,
+    [MaxLength(32)] string? DisplayName,
+    /// <summary>The student's class; null = unassigned.</summary>
+    int? CategoryId);
+
 public sealed record StudentAdminDto(
     string Id,
     string Username,
