@@ -1,7 +1,7 @@
 // Typed client for the Backend API. GDPR note: student-facing types carry only
 // DisplayName/XP; the *Admin types (with real names) come from Teacher-only endpoints.
 
-const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:5199'
+const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:5247'
 
 // ─── Types (camelCase mirrors of the backend DTOs) ─────────────────────────
 
