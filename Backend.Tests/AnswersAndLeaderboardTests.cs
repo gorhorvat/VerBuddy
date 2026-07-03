@@ -86,23 +86,23 @@ public class AnswersAndLeaderboardTests(ApiFactory factory)
             new { name = Unique("Class") }, Json);
         var category = (await categoryResponse.Content.ReadFromJsonAsync<CategoryDto>(Json))!;
 
-        var inClass = await factory.CreateActivatedStudentAsync(teacher, category.Id);
+        var inClass = await factory.CreateActivatedStudentAsync(teacher, [category.Id]);
         var outsider = await factory.CreateActivatedStudentAsync(teacher);
 
         using var inClassClient = await factory.StudentClientAsync(inClass);
-        var boards = (await inClassClient.GetFromJsonAsync<LeaderboardsDto>("/api/leaderboard", Json))!;
+        var boards = (await inClassClient.GetFromJsonAsync<LeaderboardResponse>("/api/leaderboard", Json))!;
 
-        Assert.NotNull(boards.ClassName);
-        Assert.Contains(boards.ClassEntries, e => e.DisplayName == inClass.DisplayName);
-        Assert.DoesNotContain(boards.ClassEntries, e => e.DisplayName == outsider.DisplayName);
+        var classBoard = Assert.Single(boards.Classes);
+        Assert.Equal(category.Name, classBoard.Name);
+        Assert.Contains(classBoard.Entries, e => e.DisplayName == inClass.DisplayName);
+        Assert.DoesNotContain(classBoard.Entries, e => e.DisplayName == outsider.DisplayName);
         Assert.Contains(boards.GlobalEntries, e => e.DisplayName == inClass.DisplayName);
         Assert.Contains(boards.GlobalEntries, e => e.DisplayName == outsider.DisplayName);
 
-        // A student with no class gets an empty class board.
+        // A student with no class gets an empty list of class boards.
         using var outsiderClient = await factory.StudentClientAsync(outsider);
-        var outsiderBoards = (await outsiderClient.GetFromJsonAsync<LeaderboardsDto>("/api/leaderboard", Json))!;
-        Assert.Null(outsiderBoards.ClassName);
-        Assert.Empty(outsiderBoards.ClassEntries);
+        var outsiderBoards = (await outsiderClient.GetFromJsonAsync<LeaderboardResponse>("/api/leaderboard", Json))!;
+        Assert.Empty(outsiderBoards.Classes);
     }
 
     [Fact]
@@ -115,9 +115,29 @@ public class AnswersAndLeaderboardTests(ApiFactory factory)
         await teacher.PostAsync($"/api/admin/students/{student.Id}/deactivate", null);
 
         using var client = await factory.StudentClientAsync(other);
-        var boards = (await client.GetFromJsonAsync<LeaderboardsDto>("/api/leaderboard", Json))!;
+        var boards = (await client.GetFromJsonAsync<LeaderboardResponse>("/api/leaderboard", Json))!;
 
         Assert.DoesNotContain(boards.GlobalEntries, e => e.DisplayName == student.DisplayName);
+    }
+
+    [Fact]
+    public async Task Leaderboard_StudentInTwoClasses_GetsTwoClassBoards()
+    {
+        using var teacher = await factory.TeacherClientAsync();
+        var categoryA = (await (await teacher.PostAsJsonAsync("/api/admin/categories",
+            new { name = Unique("Class") }, Json)).Content.ReadFromJsonAsync<CategoryDto>(Json))!;
+        var categoryB = (await (await teacher.PostAsJsonAsync("/api/admin/categories",
+            new { name = Unique("Class") }, Json)).Content.ReadFromJsonAsync<CategoryDto>(Json))!;
+
+        var student = await factory.CreateActivatedStudentAsync(teacher, [categoryA.Id, categoryB.Id]);
+
+        using var client = await factory.StudentClientAsync(student);
+        var boards = (await client.GetFromJsonAsync<LeaderboardResponse>("/api/leaderboard", Json))!;
+
+        Assert.Equal(2, boards.Classes.Count);
+        Assert.Contains(boards.Classes, c => c.Id == categoryA.Id);
+        Assert.Contains(boards.Classes, c => c.Id == categoryB.Id);
+        Assert.All(boards.Classes, c => Assert.Contains(c.Entries, e => e.DisplayName == student.DisplayName));
     }
 
     [Fact]

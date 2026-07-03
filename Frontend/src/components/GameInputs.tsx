@@ -100,7 +100,6 @@ export function FillInTheBlanksInput({ jsonContent, value, onChange }: InputProp
               className="mx-1 inline-block w-28 rounded-lg border border-white/20 bg-white/[0.04] px-2 py-1 text-center text-sm font-semibold focus:border-indigo-500 focus:outline-none"
               value={answers[i] ?? ''}
               onChange={(e) => setAnswer(i, e.target.value)}
-              placeholder={`blank ${i + 1}`}
             />
           )}
         </span>

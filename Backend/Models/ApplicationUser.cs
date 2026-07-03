@@ -35,9 +35,8 @@ public class ApplicationUser : IdentityUser
     /// </summary>
     public int TotalXp { get; set; }
 
-    /// <summary>The student's class (a teacher category); null = unassigned.</summary>
-    public int? CategoryId { get; set; }
-    public Category? Category { get; set; }
+    /// <summary>The student's classes (teacher categories); empty = unassigned.</summary>
+    public ICollection<Category> Categories { get; set; } = new List<Category>();
 
     /// <summary>
     /// True from activation until the student sets their own password on first

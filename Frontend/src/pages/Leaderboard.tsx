@@ -40,13 +40,13 @@ export default function Leaderboard() {
   const { user } = useAuth()
   const [data, setData] = useState<Leaderboards | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [tab, setTab] = useState<'class' | 'global'>('global')
+  const [tab, setTab] = useState<number | 'global'>('global')
 
   useEffect(() => {
     api<Leaderboards>('/api/leaderboard')
       .then((d) => {
         setData(d)
-        if (d.className) setTab('class') // Default to the caller's own class.
+        if (d.classes.length > 0) setTab(d.classes[0].id) // Default to the caller's own class.
       })
       .catch((e) => setError(e.message))
   }, [])
@@ -54,21 +54,25 @@ export default function Leaderboard() {
   if (error) return <ErrorText message={error} />
   if (!data) return <Spinner />
 
-  const hasClass = data.className !== null
+  const hasClasses = data.classes.length > 0
+  const activeClass = data.classes.find((c) => c.id === tab)
 
   return (
     <div className="space-y-3">
       <h1 className="text-2xl font-bold">🏆 Leaderboard</h1>
 
-      {hasClass && (
-        <div className="flex rounded-xl bg-slate-200 p-1">
-          <button
-            type="button"
-            onClick={() => setTab('class')}
-            className={`flex-1 rounded-lg px-3 py-1.5 text-sm font-semibold ${tab === 'class' ? 'bg-indigo-600/15 text-indigo-600' : 'text-slate-500'}`}
-          >
-            {data.className}
-          </button>
+      {hasClasses && (
+        <div className="flex flex-wrap rounded-xl bg-slate-200 p-1">
+          {data.classes.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              onClick={() => setTab(c.id)}
+              className={`flex-1 rounded-lg px-3 py-1.5 text-sm font-semibold ${tab === c.id ? 'bg-indigo-600/15 text-indigo-600' : 'text-slate-500'}`}
+            >
+              {c.name}
+            </button>
+          ))}
           <button
             type="button"
             onClick={() => setTab('global')}
@@ -80,7 +84,7 @@ export default function Leaderboard() {
       )}
 
       <Board
-        entries={tab === 'class' && hasClass ? data.classEntries : data.globalEntries}
+        entries={activeClass ? activeClass.entries : data.globalEntries}
         myName={user?.displayName}
       />
     </div>

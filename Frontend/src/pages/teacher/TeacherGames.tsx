@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
-import { Link } from 'react-router-dom'
-import { api, type Category, type GameSummary, type GameType } from '../../api'
+import { Link, useNavigate } from 'react-router-dom'
+import { api, type Category, type GameDetail, type GameSummary, type GameType } from '../../api'
 import { Badge, Button, Card, ErrorText, Field, Spinner, gameTypeLabels, inputClass } from '../../components/ui'
 import AvatarStack from '../../components/AvatarStack'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import Modal from '../../components/Modal'
 
 export default function TeacherGames() {
+  const navigate = useNavigate()
   const [games, setGames] = useState<GameSummary[] | null>(null)
   const [categories, setCategories] = useState<Category[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -65,6 +66,16 @@ export default function TeacherGames() {
       setRequireFeedback(false)
       setShowCreate(false)
     })
+  }
+
+  const useAsTemplate = async (g: GameSummary) => {
+    setError(null)
+    try {
+      const copy = await api<GameDetail>(`/api/admin/games/${g.id}/duplicate`, { method: 'POST' })
+      navigate(`/teacher/games/${copy.id}`)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'The action failed.')
+    }
   }
 
   const addCategory = (e: FormEvent) => {
@@ -236,6 +247,7 @@ export default function TeacherGames() {
                 {g.attemptCount > 0 && (
                   <Link to={`/teacher/games/${g.id}/answers`}><Button variant="secondary">Answers</Button></Link>
                 )}
+                <Button variant="secondary" onClick={() => useAsTemplate(g)}>Use as template</Button>
                 {g.attemptCount === 0 && (
                   <Button variant="danger" onClick={() => setDeleteTarget(g)}>Delete</Button>
                 )}

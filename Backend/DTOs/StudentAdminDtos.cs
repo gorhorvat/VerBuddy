@@ -16,16 +16,19 @@ public sealed record CreateStudentRequest(
     [EmailAddress, MaxLength(256)] string? Email,
     /// <summary>Optional nickname; a unique one is generated when omitted.</summary>
     [MaxLength(32)] string? DisplayName,
-    /// <summary>The student's class; null = unassigned.</summary>
-    int? CategoryId);
+    /// <summary>The student's classes; null or empty = unassigned.</summary>
+    List<int>? CategoryIds);
 
 public sealed record UpdateStudentRequest(
     [MaxLength(100)] string? FirstName,
     [MaxLength(100)] string? LastName,
     [EmailAddress, MaxLength(256)] string? Email,
     [MaxLength(32)] string? DisplayName,
-    /// <summary>The student's class; null = unassigned.</summary>
-    int? CategoryId);
+    /// <summary>The student's classes; null or empty = no classes.</summary>
+    List<int>? CategoryIds);
+
+/// <summary>Minimal category reference for embedding in student payloads.</summary>
+public sealed record CategoryRefDto(int Id, string Name);
 
 public sealed record StudentAdminDto(
     string Id,
@@ -35,8 +38,7 @@ public sealed record StudentAdminDto(
     string? Email,
     string DisplayName,
     int TotalXp,
-    int? CategoryId,
-    string? CategoryName,
+    List<CategoryRefDto> Categories,
     bool IsActive,
     /// <summary>When the activation email was sent; null = never activated.</summary>
     DateTime? ActivatedAt,

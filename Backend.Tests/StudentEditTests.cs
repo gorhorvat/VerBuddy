@@ -29,29 +29,64 @@ public class StudentEditTests(ApiFactory factory)
             lastName = "Name",
             email = "new.email@test.local",
             displayName = $"R-{student.Username}",
-            categoryId = category.Id
+            categoryIds = new[] { category.Id }
         }, Json);
         updated.EnsureSuccessStatusCode();
         var dto = (await updated.Content.ReadFromJsonAsync<StudentAdminDto>(Json))!;
         Assert.Equal("New", dto.FirstName);
         Assert.Equal("new.email@test.local", dto.Email);
         Assert.Equal($"R-{student.Username}", dto.DisplayName);
-        Assert.Equal(category.Id, dto.CategoryId);
-        Assert.Equal(category.Name, dto.CategoryName);
+        var cat = Assert.Single(dto.Categories);
+        Assert.Equal(category.Id, cat.Id);
+        Assert.Equal(category.Name, cat.Name);
 
-        // null category unassigns.
+        // empty categoryIds unassigns.
         var unassigned = await teacher.PutAsJsonAsync($"/api/admin/students/{student.Id}", new
         {
             firstName = "New",
             lastName = "Name",
             email = "new.email@test.local",
             displayName = (string?)null,
-            categoryId = (int?)null
+            categoryIds = Array.Empty<int>()
         }, Json);
         unassigned.EnsureSuccessStatusCode();
         var dto2 = (await unassigned.Content.ReadFromJsonAsync<StudentAdminDto>(Json))!;
-        Assert.Null(dto2.CategoryId);
-        Assert.Null(dto2.CategoryName);
+        Assert.Empty(dto2.Categories);
+    }
+
+    [Fact]
+    public async Task Update_with_multiple_categoryIds_assigns_both_then_clears()
+    {
+        using var teacher = await factory.TeacherClientAsync();
+        var student = await factory.CreateActivatedStudentAsync(teacher);
+        var categoryA = await CreateCategoryAsync(teacher);
+        var categoryB = await CreateCategoryAsync(teacher);
+
+        var updated = await teacher.PutAsJsonAsync($"/api/admin/students/{student.Id}", new
+        {
+            firstName = "Multi",
+            lastName = "Class",
+            email = (string?)null,
+            displayName = (string?)null,
+            categoryIds = new[] { categoryA.Id, categoryB.Id }
+        }, Json);
+        updated.EnsureSuccessStatusCode();
+        var dto = (await updated.Content.ReadFromJsonAsync<StudentAdminDto>(Json))!;
+        Assert.Equal(2, dto.Categories.Count);
+        Assert.Contains(dto.Categories, c => c.Id == categoryA.Id);
+        Assert.Contains(dto.Categories, c => c.Id == categoryB.Id);
+
+        var cleared = await teacher.PutAsJsonAsync($"/api/admin/students/{student.Id}", new
+        {
+            firstName = "Multi",
+            lastName = "Class",
+            email = (string?)null,
+            displayName = (string?)null,
+            categoryIds = (int[]?)null
+        }, Json);
+        cleared.EnsureSuccessStatusCode();
+        var dto2 = (await cleared.Content.ReadFromJsonAsync<StudentAdminDto>(Json))!;
+        Assert.Empty(dto2.Categories);
     }
 
     [Fact]
@@ -72,7 +107,7 @@ public class StudentEditTests(ApiFactory factory)
             lastName = "Y",
             email = (string?)null,
             displayName = (string?)null,
-            categoryId = foreignCategory.Id
+            categoryIds = new[] { foreignCategory.Id }
         }, Json);
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
@@ -91,11 +126,11 @@ public class StudentEditTests(ApiFactory factory)
             lastName = "Student",
             email = (string?)null,
             displayName = (string?)null,
-            categoryId = category.Id
+            categoryIds = new[] { category.Id }
         }, Json);
         response.EnsureSuccessStatusCode();
         var dto = (await response.Content.ReadFromJsonAsync<StudentAdminDto>(Json))!;
-        Assert.Equal(category.Id, dto.CategoryId);
+        Assert.Contains(dto.Categories, c => c.Id == category.Id);
     }
 
     [Fact]
@@ -110,7 +145,7 @@ public class StudentEditTests(ApiFactory factory)
             lastName = "Y",
             email = (string?)null,
             displayName = (string?)null,
-            categoryId = 999999
+            categoryIds = new[] { 999999 }
         }, Json);
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
@@ -128,7 +163,7 @@ public class StudentEditTests(ApiFactory factory)
             lastName = "Y",
             email = (string?)null,
             displayName = first.DisplayName,
-            categoryId = (int?)null
+            categoryIds = (int[]?)null
         }, Json);
         Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
     }

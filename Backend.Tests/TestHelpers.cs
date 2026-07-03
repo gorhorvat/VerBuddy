@@ -66,7 +66,7 @@ public static class TestHelpers
     /// first login with the temp password → change to a known password.
     /// </summary>
     public static async Task<TestStudent> CreateActivatedStudentAsync(
-        this ApiFactory factory, HttpClient teacher, int? categoryId = null)
+        this ApiFactory factory, HttpClient teacher, List<int>? categoryIds = null)
     {
         var username = Unique("stu");
         var email = $"{username}@test.local";
@@ -78,7 +78,7 @@ public static class TestHelpers
             lastName = "Student",
             email,
             displayName = (string?)null,
-            categoryId
+            categoryIds
         }, Json);
         createResponse.EnsureSuccessStatusCode();
         var dto = (await createResponse.Content.ReadFromJsonAsync<StudentAdminDto>(Json))!;

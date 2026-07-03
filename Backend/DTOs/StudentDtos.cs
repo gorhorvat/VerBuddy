@@ -19,7 +19,10 @@ public sealed record StudentGameSummaryDto(
     string MyStatus,
     int? MyScore,
     int? MyMaxScore,
-    int? MyEarnedXp);
+    int? MyEarnedXp,
+    /// <summary>Null = General (visible to every student).</summary>
+    int? CategoryId,
+    string? CategoryName);
 
 /// <summary>Question as students see it — JsonContent has the answer key stripped.</summary>
 public sealed record StudentQuestionDto(
@@ -53,11 +56,13 @@ public sealed record AttemptResultDto(
 /// <summary>Leaderboard row — DisplayName and XP only, never PII (GDPR).</summary>
 public sealed record LeaderboardEntryDto(int Rank, string DisplayName, int TotalXp);
 
+/// <summary>One class (category) board: active students in that class, ranked by XP.</summary>
+public sealed record ClassBoardDto(int Id, string Name, List<LeaderboardEntryDto> Entries);
+
 /// <summary>
-/// Class board (the caller's own category; empty when unassigned) plus the
-/// global board across all students.
+/// One board per class the caller belongs to (empty for admins or students with
+/// no classes) plus the global board across all students.
 /// </summary>
-public sealed record LeaderboardsDto(
-    string? ClassName,
-    List<LeaderboardEntryDto> ClassEntries,
+public sealed record LeaderboardResponse(
+    List<ClassBoardDto> Classes,
     List<LeaderboardEntryDto> GlobalEntries);

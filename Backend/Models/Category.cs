@@ -2,8 +2,9 @@ namespace Backend.Models;
 
 /// <summary>
 /// A teacher-defined folder/class (e.g. "5th Grade A"). Games are filed into a
-/// category and students are assigned to one (their class, used for the class
-/// leaderboard). Uncategorized items render under a virtual "General" group.
+/// category and students may belong to any number of them (their classes, used
+/// for per-class leaderboards). Uncategorized items render under a virtual
+/// "General" group.
 /// </summary>
 public class Category
 {

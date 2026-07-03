@@ -15,15 +15,11 @@ export default function Modal({
   if (!open) return null
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm"
-      onClick={onClose}
-    >
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm">
       <div
         role="dialog"
         aria-modal="true"
         className="max-h-[85dvh] w-full max-w-xl overflow-y-auto rounded-2xl border border-white/10 bg-[#111111] p-6 shadow-xl sm:p-8"
-        onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-5 flex items-center justify-between gap-4">
           <h2 className="text-xl font-bold">{title}</h2>

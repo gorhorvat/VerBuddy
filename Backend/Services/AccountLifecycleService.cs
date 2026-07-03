@@ -1,4 +1,5 @@
 using System.Net;
+using Backend.Data;
 using Backend.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -12,6 +13,7 @@ namespace Backend.Services;
 /// delivery fails the account's password state is left untouched.
 /// </summary>
 public sealed class AccountLifecycleService(
+    AppDbContext db,
     UserManager<ApplicationUser> userManager,
     IEmailSender emailSender,
     IConfiguration config)
@@ -20,11 +22,13 @@ public sealed class AccountLifecycleService(
 
     /// <summary>
     /// Creates a password-less account in the given role. DisplayName is
-    /// generated when omitted; uniqueness is enforced either way.
+    /// generated when omitted; uniqueness is enforced either way. The caller
+    /// is responsible for validating categoryIds (existence + ownership) before
+    /// calling this.
     /// </summary>
     public async Task<(ApplicationUser? User, (HttpStatusCode Status, string Message)? Error)> CreateAccountAsync(
         string role, string username, string? firstName, string? lastName,
-        string? email, string? displayName, int? categoryId = null)
+        string? email, string? displayName, List<int>? categoryIds = null)
     {
         displayName = displayName?.Trim();
         if (string.IsNullOrEmpty(displayName))
@@ -37,6 +41,10 @@ public sealed class AccountLifecycleService(
             return (null, (HttpStatusCode.Conflict, $"Display name '{displayName}' is already taken."));
         }
 
+        var categories = categoryIds is { Count: > 0 }
+            ? await db.Categories.Where(c => categoryIds.Contains(c.Id)).ToListAsync()
+            : [];
+
         var user = new ApplicationUser
         {
             UserName = username.Trim(),
@@ -44,7 +52,7 @@ public sealed class AccountLifecycleService(
             FirstName = firstName,
             LastName = lastName,
             DisplayName = displayName,
-            CategoryId = categoryId,
+            Categories = categories,
             EmailConfirmed = true // No email round-trip for provisioned accounts.
         };
 

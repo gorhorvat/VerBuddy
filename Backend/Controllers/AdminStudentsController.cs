@@ -32,11 +32,26 @@ public class AdminStudentsController(
     public async Task<ActionResult<List<StudentAdminDto>>> List()
     {
         var students = await userManager.GetUsersInRoleAsync(AppRoles.User);
-        var categoryNames = await db.Categories.ToDictionaryAsync(c => c.Id, c => c.Name);
+        var ids = students.Select(s => s.Id).ToList();
+
+        var categoriesByStudent = await db.Users
+            .Where(u => ids.Contains(u.Id))
+            .Select(u => new
+            {
+                u.Id,
+                Categories = u.Categories
+                    .OrderBy(c => c.Name)
+                    .Select(c => new CategoryRefDto(c.Id, c.Name))
+                    .ToList()
+            })
+            .ToDictionaryAsync(x => x.Id, x => x.Categories);
 
         return students
             .OrderBy(s => s.LastName).ThenBy(s => s.FirstName)
-            .Select(s => ToDto(s, s.CategoryId is { } cid ? categoryNames.GetValueOrDefault(cid) : null))
+            .Select(s => new StudentAdminDto(
+                s.Id, s.UserName!, s.FirstName, s.LastName, s.Email, s.DisplayName, s.TotalXp,
+                categoriesByStudent.GetValueOrDefault(s.Id) ?? [],
+                s.IsActive, s.ActivatedAt, s.MustChangePassword))
             .ToList();
     }
 
@@ -49,13 +64,13 @@ public class AdminStudentsController(
     {
         var (student, error) = await CreateStudentAsync(
             request.Username, request.FirstName, request.LastName,
-            request.Email, request.DisplayName, request.CategoryId);
+            request.Email, request.DisplayName, request.CategoryIds);
         if (error is not null)
             return error.Value.Status == HttpStatusCode.Conflict
                 ? Conflict(new { message = error.Value.Message })
                 : BadRequest(new { message = error.Value.Message });
 
-        return CreatedAtAction(nameof(List), await ToDtoWithCategoryAsync(student!));
+        return CreatedAtAction(nameof(List), await ToDtoAsync(student!));
     }
 
     /// <summary>Bulk creation from a teacher-prepared CSV, parsed client-side.</summary>
@@ -64,22 +79,23 @@ public class AdminStudentsController(
     {
         var created = new List<StudentAdminDto>();
         var errors = new List<string>();
+        var categoryIds = request.CategoryId is { } cid ? new List<int> { cid } : null;
 
         foreach (var row in request.Rows)
         {
             var (student, error) = await CreateStudentAsync(
                 row.Username, row.FirstName, row.LastName,
-                row.Email, row.DisplayName, request.CategoryId);
+                row.Email, row.DisplayName, categoryIds);
             if (error is not null)
                 errors.Add($"{row.Username}: {error.Value.Message}");
             else
-                created.Add(await ToDtoWithCategoryAsync(student!));
+                created.Add(await ToDtoAsync(student!));
         }
 
         return new ImportStudentsResult(created, errors);
     }
 
-    /// <summary>Updates PII, nickname (uniqueness enforced) and class assignment.</summary>
+    /// <summary>Updates PII, nickname (uniqueness enforced) and class assignments.</summary>
     [HttpPut("{id}")]
     public async Task<ActionResult<StudentAdminDto>> Update(string id, UpdateStudentRequest request)
     {
@@ -87,18 +103,11 @@ public class AdminStudentsController(
         if (student is null)
             return NotFound();
 
-        if (request.CategoryId is { } categoryId)
-        {
-            // Admins may only file students into their own classes; SuperAdmin
-            // into any. "Unknown category." for both so foreign class ids don't
-            // leak their existence.
-            var callerId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
-            var allowed = User.IsInRole(AppRoles.SuperAdmin)
-                ? await db.Categories.AnyAsync(c => c.Id == categoryId)
-                : await db.Categories.AnyAsync(c => c.Id == categoryId && c.TeacherId == callerId);
-            if (!allowed)
-                return BadRequest(new { message = "Unknown category." });
-        }
+        // Admins may only file students into their own classes; SuperAdmin
+        // into any. "Unknown category." for both so foreign class ids don't
+        // leak their existence.
+        if (!await ValidCategoryIdsAsync(request.CategoryIds))
+            return BadRequest(new { message = "Unknown category." });
 
         var displayName = request.DisplayName?.Trim();
         if (!string.IsNullOrEmpty(displayName) && displayName != student.DisplayName)
@@ -111,13 +120,19 @@ public class AdminStudentsController(
         student.FirstName = request.FirstName;
         student.LastName = request.LastName;
         student.Email = request.Email;
-        student.CategoryId = request.CategoryId;
+
+        // The Categories collection must be loaded first so EF can diff the
+        // replacement against the persisted join rows.
+        await db.Entry(student).Collection(s => s.Categories).LoadAsync();
+        student.Categories = request.CategoryIds is { Count: > 0 }
+            ? await db.Categories.Where(c => request.CategoryIds.Contains(c.Id)).ToListAsync()
+            : [];
 
         var result = await userManager.UpdateAsync(student);
         if (!result.Succeeded)
             return BadRequest(new { errors = result.Errors.Select(e => e.Description) });
 
-        return await ToDtoWithCategoryAsync(student);
+        return await ToDtoAsync(student);
     }
 
     /// <summary>
@@ -135,7 +150,7 @@ public class AdminStudentsController(
         if (error is not null)
             return BadRequest(new { message = error });
 
-        return await ToDtoWithCategoryAsync(student);
+        return await ToDtoAsync(student);
     }
 
     /// <summary>Activates several students at once (e.g. after a CSV import).</summary>
@@ -194,7 +209,7 @@ public class AdminStudentsController(
 
         student.IsActive = false;
         await userManager.UpdateAsync(student);
-        return await ToDtoWithCategoryAsync(student);
+        return await ToDtoAsync(student);
     }
 
     [HttpPost("{id}/reactivate")]
@@ -206,7 +221,7 @@ public class AdminStudentsController(
 
         student.IsActive = true;
         await userManager.UpdateAsync(student);
-        return await ToDtoWithCategoryAsync(student);
+        return await ToDtoAsync(student);
     }
 
     /// <summary>
@@ -240,24 +255,43 @@ public class AdminStudentsController(
 
     private async Task<(ApplicationUser? Student, (HttpStatusCode Status, string Message)? Error)> CreateStudentAsync(
         string username, string? firstName, string? lastName,
-        string? email, string? displayName, int? categoryId)
+        string? email, string? displayName, List<int>? categoryIds)
     {
-        if (categoryId is not null && !await db.Categories.AnyAsync(c => c.Id == categoryId))
+        if (!await ValidCategoryIdsAsync(categoryIds))
             return (null, (HttpStatusCode.BadRequest, "Unknown category."));
 
         return await lifecycle.CreateAccountAsync(
-            AppRoles.User, username, firstName, lastName, email, displayName, categoryId);
+            AppRoles.User, username, firstName, lastName, email, displayName, categoryIds);
     }
 
-    private async Task<StudentAdminDto> ToDtoWithCategoryAsync(ApplicationUser s)
+    /// <summary>
+    /// Every id must exist and (SuperAdmin → any category; Admin → only their
+    /// own). Null/empty is always valid (no classes).
+    /// </summary>
+    private async Task<bool> ValidCategoryIdsAsync(List<int>? categoryIds)
     {
-        string? categoryName = null;
-        if (s.CategoryId is { } cid)
-            categoryName = (await db.Categories.FindAsync(cid))?.Name;
-        return ToDto(s, categoryName);
+        if (categoryIds is not { Count: > 0 })
+            return true;
+
+        var distinctIds = categoryIds.Distinct().ToList();
+        var callerId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        var validCount = User.IsInRole(AppRoles.SuperAdmin)
+            ? await db.Categories.CountAsync(c => distinctIds.Contains(c.Id))
+            : await db.Categories.CountAsync(c => distinctIds.Contains(c.Id) && c.TeacherId == callerId);
+        return validCount == distinctIds.Count;
     }
 
-    private static StudentAdminDto ToDto(ApplicationUser u, string? categoryName) =>
+    /// <summary>Ensures Categories is loaded (if not already) before projecting.</summary>
+    private async Task<StudentAdminDto> ToDtoAsync(ApplicationUser s)
+    {
+        var collection = db.Entry(s).Collection(u => u.Categories);
+        if (!collection.IsLoaded)
+            await collection.LoadAsync();
+        return ToDto(s);
+    }
+
+    private static StudentAdminDto ToDto(ApplicationUser u) =>
         new(u.Id, u.UserName!, u.FirstName, u.LastName, u.Email, u.DisplayName, u.TotalXp,
-            u.CategoryId, categoryName, u.IsActive, u.ActivatedAt, u.MustChangePassword);
+            u.Categories.OrderBy(c => c.Name).Select(c => new CategoryRefDto(c.Id, c.Name)).ToList(),
+            u.IsActive, u.ActivatedAt, u.MustChangePassword);
 }

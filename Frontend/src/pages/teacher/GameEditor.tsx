@@ -1,8 +1,9 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { api, type GameDetail, type GameType, type QuestionAdmin } from '../../api'
 import { Badge, Button, Card, ErrorText, Spinner, gameTypeLabels, inputClass } from '../../components/ui'
 import ConfirmDialog from '../../components/ConfirmDialog'
+import QuestionContent from '../../components/QuestionContent'
 
 /**
  * Question builder/editor. Teachers author content in friendly text formats
@@ -11,9 +12,19 @@ import ConfirmDialog from '../../components/ConfirmDialog'
  */
 export default function GameEditor() {
   const { id } = useParams() as { id: string }
+  const navigate = useNavigate()
   const [game, setGame] = useState<GameDetail | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<QuestionAdmin | null>(null)
+
+  // Snapshot of the questions as they were when the editor was first opened,
+  // so "Cancel" can revert any add/edit/delete made during this visit. Set
+  // once, on the first successful load — never overwritten by reloads that
+  // happen after every save/delete during the session.
+  const [snapshot, setSnapshot] = useState<QuestionAdmin[] | null>(null)
+  const [sessionChanged, setSessionChanged] = useState(false)
+  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false)
+  const [reverting, setReverting] = useState(false)
 
   // Question form state; editingId != null means we're editing an existing one.
   const [editingId, setEditingId] = useState<number | null>(null)
@@ -27,7 +38,12 @@ export default function GameEditor() {
   const [pairsText, setPairsText] = useState('')
 
   const load = () =>
-    api<GameDetail>(`/api/admin/games/${id}`).then(setGame).catch((e) => setError(e.message))
+    api<GameDetail>(`/api/admin/games/${id}`)
+      .then((g) => {
+        setGame(g)
+        setSnapshot((prev) => prev ?? g.questions.map((q) => ({ ...q })))
+      })
+      .catch((e) => setError(e.message))
 
   useEffect(() => {
     load()
@@ -124,6 +140,7 @@ export default function GameEditor() {
       } else {
         await api(`/api/admin/games/${id}/questions`, { method: 'POST', body })
       }
+      setSessionChanged(true)
       resetForm()
       await load()
     } catch (err) {
@@ -135,10 +152,76 @@ export default function GameEditor() {
     setError(null)
     try {
       await api(`/api/admin/games/${id}/questions/${questionId}`, { method: 'DELETE' })
+      setSessionChanged(true)
       if (editingId === questionId) resetForm()
       await load()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Delete failed.')
+    }
+  }
+
+  /**
+   * Undoes every add/edit/delete made during this visit using the existing
+   * question CRUD endpoints, restoring the game to the state captured in
+   * `snapshot`. Recreated questions get new ids — that's an accepted
+   * trade-off since there's no backend "restore" endpoint.
+   */
+  const revertToSnapshot = async () => {
+    if (!game || !snapshot) return
+    const current = game.questions
+    const currentById = new Map(current.map((q) => [q.id, q]))
+    const snapshotById = new Map(snapshot.map((q) => [q.id, q]))
+
+    // Remove questions added this session.
+    for (const q of current) {
+      if (!snapshotById.has(q.id)) {
+        await api(`/api/admin/games/${id}/questions/${q.id}`, { method: 'DELETE' })
+      }
+    }
+
+    // Restore deleted or edited questions to their original content.
+    for (const orig of snapshot) {
+      const cur = currentById.get(orig.id)
+      const body = { prompt: orig.prompt, order: orig.order, points: orig.points, jsonContent: orig.jsonContent }
+      if (!cur) {
+        await api(`/api/admin/games/${id}/questions`, { method: 'POST', body })
+      } else if (
+        cur.prompt !== orig.prompt ||
+        cur.points !== orig.points ||
+        cur.order !== orig.order ||
+        cur.jsonContent !== orig.jsonContent
+      ) {
+        await api(`/api/admin/games/${id}/questions/${orig.id}`, { method: 'PUT', body })
+      }
+    }
+  }
+
+  const handleSave = () => {
+    // Questions are already persisted as each add/edit/delete is submitted —
+    // there's nothing left to flush, just leave the editor.
+    navigate('/teacher/games')
+  }
+
+  const handleCancel = () => {
+    if (sessionChanged) {
+      setShowDiscardConfirm(true)
+    } else {
+      navigate('/teacher/games')
+    }
+  }
+
+  const confirmDiscard = async () => {
+    setShowDiscardConfirm(false)
+    setReverting(true)
+    setError(null)
+    try {
+      await revertToSnapshot()
+      navigate('/teacher/games')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Reverting changes failed. Some edits may remain.')
+      await load()
+    } finally {
+      setReverting(false)
     }
   }
 
@@ -180,9 +263,12 @@ export default function GameEditor() {
 
       {game.questions.map((q) => (
         <Card key={q.id} className={`flex items-start justify-between gap-3 !py-3 ${editingId === q.id ? 'ring-2 ring-indigo-400' : ''}`}>
-          <div className="min-w-0">
-            <p className="font-semibold">{q.order}. {q.prompt}</p>
-            <p className="truncate text-xs text-slate-400">{q.jsonContent}</p>
+          <div className="min-w-0 flex-1 space-y-2">
+            <div className="flex items-start justify-between gap-2">
+              <p className="font-semibold">{q.order}. {q.prompt}</p>
+              <span className="shrink-0 text-xs text-slate-400">{q.points} pt{q.points === 1 ? '' : 's'}</span>
+            </div>
+            <QuestionContent gameType={game.gameType} jsonContent={q.jsonContent} />
           </div>
           {editable && (
             <div className="flex shrink-0 gap-2">
@@ -284,6 +370,24 @@ export default function GameEditor() {
           setDeleteTarget(null)
           deleteQuestion(qid)
         }}
+      />
+
+      <div className="sticky bottom-20 z-20 flex gap-2 border border-white/10 bg-[#0a0a0a]/95 p-3 backdrop-blur-md sm:bottom-4">
+        <Button variant="secondary" className="flex-1" onClick={handleCancel} disabled={reverting}>
+          {reverting ? 'Discarding…' : 'Cancel'}
+        </Button>
+        <Button className="flex-1" onClick={handleSave} disabled={reverting}>
+          Save
+        </Button>
+      </div>
+
+      <ConfirmDialog
+        open={showDiscardConfirm}
+        title="Discard changes?"
+        message="Questions added, edited, or deleted during this visit will be reverted to how they were when you opened this editor."
+        confirmLabel="Discard changes"
+        onCancel={() => setShowDiscardConfirm(false)}
+        onConfirm={confirmDiscard}
       />
     </div>
   )

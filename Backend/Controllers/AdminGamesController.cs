@@ -111,6 +111,48 @@ public class AdminGamesController(AppDbContext db) : ControllerBase
         return ToDetailDto(game, await db.StudentAttempts.CountAsync(a => a.GameInstanceId == id));
     }
 
+    /// <summary>
+    /// Duplicates a game (including its questions and answer keys) as a new
+    /// Draft — "use as template" for building a variant without touching the
+    /// original.
+    /// </summary>
+    [HttpPost("{id:int}/duplicate")]
+    public async Task<ActionResult<GameDetailDto>> Duplicate(int id)
+    {
+        var game = await db.GameInstances
+            .Include(g => g.Questions)
+            .Include(g => g.Category)
+            .FirstOrDefaultAsync(g => g.Id == id && g.CreatedByTeacherId == TeacherId);
+        if (game is null)
+            return NotFound();
+
+        var copy = new GameInstance
+        {
+            Title = game.Title + " (copy)",
+            Description = game.Description,
+            GameType = game.GameType,
+            State = GameState.Draft,
+            TimeLimitSeconds = game.TimeLimitSeconds,
+            XpReward = game.XpReward,
+            RequireFeedback = game.RequireFeedback,
+            CategoryId = game.CategoryId,
+            CreatedByTeacherId = TeacherId,
+            Questions = game.Questions.Select(q => new Question
+            {
+                Prompt = q.Prompt,
+                Order = q.Order,
+                Points = q.Points,
+                JsonContent = q.JsonContent
+            }).ToList()
+        };
+
+        db.GameInstances.Add(copy);
+        await db.SaveChangesAsync();
+        copy.Category = game.Category;
+
+        return CreatedAtAction(nameof(Get), new { id = copy.Id }, ToDetailDto(copy, 0));
+    }
+
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id)
     {

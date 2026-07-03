@@ -34,6 +34,8 @@ export interface StudentGameSummary {
   timeLimitSeconds: number | null
   xpReward: number
   questionCount: number
+  categoryId: number | null
+  categoryName: string | null
   myStatus: 'NotStarted' | AttemptStatus
   myScore: number | null
   myMaxScore: number | null
@@ -72,9 +74,14 @@ export interface LeaderboardEntry {
   totalXp: number
 }
 
+export interface LeaderboardClass {
+  id: number
+  name: string
+  entries: LeaderboardEntry[]
+}
+
 export interface Leaderboards {
-  className: string | null
-  classEntries: LeaderboardEntry[]
+  classes: LeaderboardClass[]
   globalEntries: LeaderboardEntry[]
 }
 
@@ -176,8 +183,7 @@ export interface StudentAdmin {
   email: string | null
   displayName: string
   totalXp: number
-  categoryId: number | null
-  categoryName: string | null
+  categories: { id: number; name: string }[]
   isActive: boolean
   activatedAt: string | null
   mustChangePassword: boolean

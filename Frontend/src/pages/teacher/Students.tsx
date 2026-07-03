@@ -26,14 +26,14 @@ export default function Students() {
   const [deleteTarget, setDeleteTarget] = useState<StudentAdmin | null>(null)
   const [editId, setEditId] = useState<string | null>(null)
   const [editForm, setEditForm] = useState({
-    firstName: '', lastName: '', email: '', displayName: '', categoryId: '',
+    firstName: '', lastName: '', email: '', displayName: '', categoryIds: [] as number[],
   })
   const [busyIds, setBusyIds] = useState<Set<string>>(new Set())
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [importCategoryId, setImportCategoryId] = useState('')
 
   const [form, setForm] = useState({
-    username: '', firstName: '', lastName: '', email: '', displayName: '', categoryId: '',
+    username: '', firstName: '', lastName: '', email: '', displayName: '', categoryIds: [] as number[],
   })
 
   const load = () =>
@@ -68,11 +68,23 @@ export default function Students() {
     })
   }
 
-  const set = (key: keyof typeof form) => (e: { target: { value: string } }) =>
+  const set = (key: 'username' | 'firstName' | 'lastName' | 'email' | 'displayName') => (e: { target: { value: string } }) =>
     setForm((f) => ({ ...f, [key]: e.target.value }))
 
-  const setEdit = (key: keyof typeof editForm) => (e: { target: { value: string } }) =>
+  const setEdit = (key: 'firstName' | 'lastName' | 'email' | 'displayName') => (e: { target: { value: string } }) =>
     setEditForm((f) => ({ ...f, [key]: e.target.value }))
+
+  const toggleFormCategory = (id: number) =>
+    setForm((f) => ({
+      ...f,
+      categoryIds: f.categoryIds.includes(id) ? f.categoryIds.filter((c) => c !== id) : [...f.categoryIds, id],
+    }))
+
+  const toggleEditCategory = (id: number) =>
+    setEditForm((f) => ({
+      ...f,
+      categoryIds: f.categoryIds.includes(id) ? f.categoryIds.filter((c) => c !== id) : [...f.categoryIds, id],
+    }))
 
   const startEdit = (s: StudentAdmin) => {
     setEditId(s.id)
@@ -81,7 +93,7 @@ export default function Students() {
       lastName: s.lastName ?? '',
       email: s.email ?? '',
       displayName: s.displayName,
-      categoryId: s.categoryId !== null ? String(s.categoryId) : '',
+      categoryIds: s.categories.map((c) => c.id),
     })
   }
 
@@ -96,7 +108,7 @@ export default function Students() {
           lastName: editForm.lastName || null,
           email: editForm.email || null,
           displayName: editForm.displayName || null,
-          categoryId: editForm.categoryId ? Number(editForm.categoryId) : null,
+          categoryIds: editForm.categoryIds.length ? editForm.categoryIds : null,
         },
       })
       setEditId(null)
@@ -114,10 +126,10 @@ export default function Students() {
           lastName: form.lastName || null,
           email: form.email || null,
           displayName: form.displayName || null,
-          categoryId: form.categoryId ? Number(form.categoryId) : null,
+          categoryIds: form.categoryIds.length ? form.categoryIds : null,
         },
       })
-      setForm({ username: '', firstName: '', lastName: '', email: '', displayName: '', categoryId: '' })
+      setForm({ username: '', firstName: '', lastName: '', email: '', displayName: '', categoryIds: [] })
       setShowCreate(false)
     }, 'Student created. Use "Activate" to email their first-login credentials.')
   }
@@ -229,14 +241,23 @@ export default function Students() {
             <Field label="Nickname">
               <input className={inputClass} placeholder="Empty = auto-generate" value={form.displayName} onChange={set('displayName')} maxLength={32} />
             </Field>
-            <Field label="Class">
-              <select className={inputClass} value={form.categoryId} onChange={set('categoryId')}>
-                <option value="">No class</option>
+            <div>
+              <span className="mb-1.5 block text-sm font-semibold text-slate-500">Classes</span>
+              <div className="max-h-40 space-y-1 overflow-y-auto rounded-lg border border-white/20 bg-white/[0.04] p-2">
+                {categories.length === 0 && <p className="px-2 py-1 text-xs text-slate-500">No classes yet.</p>}
                 {categories.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
+                  <label key={c.id} className="flex cursor-pointer items-center gap-2 px-2 py-1 text-sm">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 accent-indigo-600"
+                      checked={form.categoryIds.includes(c.id)}
+                      onChange={() => toggleFormCategory(c.id)}
+                    />
+                    {c.name}
+                  </label>
                 ))}
-              </select>
-            </Field>
+              </div>
+            </div>
           </div>
           <p className="text-sm text-slate-500">
             No password needed — activating the account emails the student a temporary
@@ -277,7 +298,7 @@ export default function Students() {
                 <p className="truncate text-xs text-slate-500">
                   @{s.username}
                   {s.email && ` · ${s.email}`}
-                  {s.categoryName && ` · 📁 ${s.categoryName}`}
+                  {s.categories.length > 0 && ` · 📁 ${s.categories.map((c) => c.name).join(', ')}`}
                 </p>
               </div>
               <span className="shrink-0 rounded-none bg-indigo-50 px-3 py-1 font-mono text-sm font-bold text-indigo-700">
@@ -363,14 +384,23 @@ export default function Students() {
             <Field label="Nickname">
               <input className={inputClass} value={editForm.displayName} onChange={setEdit('displayName')} maxLength={32} />
             </Field>
-            <Field label="Class">
-              <select className={inputClass} value={editForm.categoryId} onChange={setEdit('categoryId')}>
-                <option value="">No class</option>
+            <div>
+              <span className="mb-1.5 block text-sm font-semibold text-slate-500">Classes</span>
+              <div className="max-h-40 space-y-1 overflow-y-auto rounded-lg border border-white/20 bg-white/[0.04] p-2">
+                {categories.length === 0 && <p className="px-2 py-1 text-xs text-slate-500">No classes yet.</p>}
                 {categories.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
+                  <label key={c.id} className="flex cursor-pointer items-center gap-2 px-2 py-1 text-sm">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 accent-indigo-600"
+                      checked={editForm.categoryIds.includes(c.id)}
+                      onChange={() => toggleEditCategory(c.id)}
+                    />
+                    {c.name}
+                  </label>
                 ))}
-              </select>
-            </Field>
+              </div>
+            </div>
           </div>
           <div className="flex justify-end gap-3">
             <Button type="button" variant="secondary" onClick={() => setEditId(null)}>Cancel</Button>

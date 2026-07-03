@@ -27,7 +27,9 @@ public class StudentGamesController(AppDbContext db) : ControllerBase
 
     /// <summary>
     /// Current (Active) and past (Closed) games with the caller's own attempt
-    /// state per game. Drafts stay invisible to students.
+    /// state per game. Drafts stay invisible to students. Visible games are
+    /// General (no category) plus games filed into any class the caller
+    /// belongs to.
     /// </summary>
     [HttpGet]
     public async Task<ActionResult<List<StudentGameSummaryDto>>> Dashboard()
@@ -35,10 +37,13 @@ public class StudentGamesController(AppDbContext db) : ControllerBase
         var me = StudentId;
         var rows = await db.GameInstances
             .Where(g => g.State == GameState.Active || g.State == GameState.Closed)
+            .Where(g => g.CategoryId == null || g.Category!.Students.Any(s => s.Id == me))
             .OrderByDescending(g => g.CreatedAt)
             .Select(g => new
             {
                 g.Id, g.Title, g.Description, g.GameType, g.State, g.TimeLimitSeconds, g.XpReward,
+                g.CategoryId,
+                CategoryName = g.Category != null ? g.Category.Name : null,
                 QuestionCount = g.Questions.Count,
                 Attempt = g.Attempts
                     .Where(a => a.StudentId == me)
@@ -51,7 +56,8 @@ public class StudentGamesController(AppDbContext db) : ControllerBase
             r.Id, r.Title, r.Description, r.GameType, r.State, r.TimeLimitSeconds, r.XpReward,
             r.QuestionCount,
             r.Attempt == null ? "NotStarted" : r.Attempt.Status.ToString(),
-            r.Attempt?.Score, r.Attempt?.MaxScore, r.Attempt?.EarnedXp)).ToList();
+            r.Attempt?.Score, r.Attempt?.MaxScore, r.Attempt?.EarnedXp,
+            r.CategoryId, r.CategoryName)).ToList();
     }
 
     /// <summary>

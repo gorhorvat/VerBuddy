@@ -1,23 +1,65 @@
 import { useEffect, useState } from 'react'
-import { api, type AttemptAdmin } from '../../api'
+import { api, type AnswerBreakdown, type AttemptAdmin, type GameAnswers } from '../../api'
 import { Badge, Button, Card, ErrorText, Spinner, inputClass } from '../../components/ui'
+import AnswerView from '../../components/AnswerView'
 
-function AnswersPreview({ answersJson }: { answersJson: string | null }) {
-  if (!answersJson) return null
-  try {
-    const answers = JSON.parse(answersJson) as { questionId: number; answer: unknown }[]
-    return (
-      <div className="space-y-1 rounded-xl bg-slate-50 p-3 text-xs">
-        {answers.map((a) => (
-          <p key={a.questionId} className="font-mono">
-            Q{a.questionId}: {JSON.stringify(a.answer)}
-          </p>
-        ))}
-      </div>
-    )
-  } catch {
-    return <p className="text-xs text-slate-400">{answersJson}</p>
+// Pending attempts only carry the raw answersJson blob, but the admin
+// "answers" endpoint (already used by GameAnswers.tsx) returns every
+// attempt's answers resolved against the full question content — including
+// the answer key — so we can reuse AnswerView instead of duplicating its
+// choice/blank/pair rendering here. Cache per game so a review list with
+// several pending attempts on the same game only fetches it once.
+const gameAnswersCache = new Map<number, Promise<GameAnswers>>()
+
+function fetchGameAnswers(gameInstanceId: number): Promise<GameAnswers> {
+  let cached = gameAnswersCache.get(gameInstanceId)
+  if (!cached) {
+    cached = api<GameAnswers>(`/api/admin/games/${gameInstanceId}/answers`)
+    gameAnswersCache.set(gameInstanceId, cached)
   }
+  return cached
+}
+
+function AttemptAnswersView({ attempt }: { attempt: AttemptAdmin }) {
+  const [answers, setAnswers] = useState<AnswerBreakdown[] | null>(null)
+  const [loadFailed, setLoadFailed] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    fetchGameAnswers(attempt.gameInstanceId)
+      .then((data) => {
+        if (cancelled) return
+        const mine = data.attempts.find((a) => a.attemptId === attempt.id)
+        setAnswers(mine?.answers ?? [])
+      })
+      .catch(() => {
+        if (!cancelled) setLoadFailed(true)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [attempt.gameInstanceId, attempt.id])
+
+  if (loadFailed) {
+    return attempt.answersJson ? (
+      <p className="text-xs text-slate-400">{attempt.answersJson}</p>
+    ) : (
+      <p className="text-xs italic text-slate-400">Couldn't load this student's answers.</p>
+    )
+  }
+  if (!answers) return <Spinner />
+  if (answers.length === 0) return <p className="text-xs italic text-slate-400">No answers submitted.</p>
+
+  return (
+    <div className="space-y-3">
+      {answers.map((b) => (
+        <div key={b.questionId} className="space-y-1.5 rounded-xl border border-white/10 p-3">
+          <p className="text-sm font-semibold">{b.order}. {b.prompt}</p>
+          <AnswerView gameType={attempt.gameType} breakdown={b} />
+        </div>
+      ))}
+    </div>
+  )
 }
 
 function ReviewCard({ attempt, onDone }: { attempt: AttemptAdmin; onDone: () => void }) {
@@ -58,7 +100,7 @@ function ReviewCard({ attempt, onDone }: { attempt: AttemptAdmin; onDone: () => 
       <p className="text-sm">
         Auto score: <b>{attempt.score}/{attempt.maxScore}</b> · {attempt.earnedXp} XP awarded so far
       </p>
-      <AnswersPreview answersJson={attempt.answersJson} />
+      <AttemptAnswersView attempt={attempt} />
       <div className="flex flex-col gap-2 sm:flex-row">
         <input
           className={`${inputClass} sm:!w-28`}

@@ -10,8 +10,9 @@ namespace Backend.Controllers;
 
 /// <summary>
 /// Teacher-defined folders/classes for games and students. Deleting a category
-/// never deletes its contents — games move back to "General" and students
-/// become unassigned (SetNull FKs).
+/// never deletes its contents — games move back to "General" (SetNull FK) and
+/// students simply lose that one class assignment (cascade-deleted join rows);
+/// any other classes they belong to are untouched.
 /// </summary>
 [ApiController]
 [Route("api/admin/categories")]
@@ -65,7 +66,7 @@ public class AdminCategoriesController(AppDbContext db) : ControllerBase
 
         return new CategoryDto(category.Id, category.Name,
             await db.GameInstances.CountAsync(g => g.CategoryId == id),
-            await db.Users.CountAsync(u => u.CategoryId == id));
+            await db.Users.CountAsync(u => u.Categories.Any(c => c.Id == id)));
     }
 
     [HttpDelete("{id:int}")]
@@ -76,7 +77,7 @@ public class AdminCategoriesController(AppDbContext db) : ControllerBase
         if (category is null)
             return NotFound();
 
-        db.Categories.Remove(category); // Games/students are SetNull'd, not deleted.
+        db.Categories.Remove(category); // Games are SetNull'd; student join rows cascade-delete.
         await db.SaveChangesAsync();
         return NoContent();
     }

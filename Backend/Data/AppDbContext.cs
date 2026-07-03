@@ -28,11 +28,23 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             // Leaderboard reads sort by TotalXp.
             user.HasIndex(u => u.TotalXp);
 
-            // Student's class; removing a category just unassigns its students.
-            user.HasOne(u => u.Category)
+            // A student may belong to any number of classes (categories), via an
+            // explicit join table so both FKs can cascade-delete cleanly.
+            user.HasMany(u => u.Categories)
                 .WithMany(c => c.Students)
-                .HasForeignKey(u => u.CategoryId)
-                .OnDelete(DeleteBehavior.SetNull);
+                .UsingEntity<Dictionary<string, object>>(
+                    "StudentCategories",
+                    j => j.HasOne<Category>().WithMany()
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Cascade),
+                    j => j.HasOne<ApplicationUser>().WithMany()
+                        .HasForeignKey("StudentId")
+                        .OnDelete(DeleteBehavior.Cascade),
+                    j =>
+                    {
+                        j.HasKey("StudentId", "CategoryId");
+                        j.ToTable("StudentCategories");
+                    });
         });
 
         builder.Entity<Category>(category =>

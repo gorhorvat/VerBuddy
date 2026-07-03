@@ -10,10 +10,11 @@ using Microsoft.EntityFrameworkCore;
 namespace Backend.Controllers;
 
 /// <summary>
-/// Classroom leaderboards, visible to every authenticated user: the caller's
-/// own class (category) plus the global board across all students. Renders
-/// exclusively DisplayName + TotalXp — real names and emails never appear
-/// here by construction (LeaderboardEntryDto has no PII fields).
+/// Classroom leaderboards, visible to every authenticated user: one board per
+/// class (category) the caller belongs to, plus the global board across all
+/// students. Renders exclusively DisplayName + TotalXp — real names and
+/// emails never appear here by construction (LeaderboardEntryDto has no PII
+/// fields).
 /// </summary>
 [ApiController]
 [Route("api/leaderboard")]
@@ -23,7 +24,7 @@ public class LeaderboardController(
     UserManager<ApplicationUser> userManager) : ControllerBase
 {
     [HttpGet]
-    public async Task<ActionResult<LeaderboardsDto>> Get()
+    public async Task<ActionResult<LeaderboardResponse>> Get()
     {
         var students = (await userManager.GetUsersInRoleAsync(AppRoles.User))
             .Where(s => s.IsActive)
@@ -33,16 +34,25 @@ public class LeaderboardController(
 
         var global = Rank(students);
 
-        // The caller's class board (teachers have no class → empty).
+        // One board per class the caller belongs to (admins/students with no
+        // classes get an empty list).
         var me = await db.Users
-            .Include(u => u.Category)
+            .Include(u => u.Categories)
             .FirstAsync(u => u.Id == User.FindFirstValue(ClaimTypes.NameIdentifier));
 
-        var classEntries = me.CategoryId is null
-            ? []
-            : Rank(students.Where(s => s.CategoryId == me.CategoryId));
+        var studentCategoryIds = await db.Users
+            .Where(u => students.Select(s => s.Id).Contains(u.Id))
+            .Select(u => new { u.Id, CategoryIds = u.Categories.Select(c => c.Id).ToList() })
+            .ToDictionaryAsync(x => x.Id, x => x.CategoryIds);
 
-        return new LeaderboardsDto(me.Category?.Name, classEntries, global);
+        var classes = me.Categories
+            .OrderBy(c => c.Name)
+            .Select(c => new ClassBoardDto(
+                c.Id, c.Name,
+                Rank(students.Where(s => studentCategoryIds.GetValueOrDefault(s.Id, []).Contains(c.Id)))))
+            .ToList();
+
+        return new LeaderboardResponse(classes, global);
     }
 
     private static List<LeaderboardEntryDto> Rank(IEnumerable<ApplicationUser> students) =>

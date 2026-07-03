@@ -90,8 +90,15 @@ export default function StudentDashboard() {
           <p className="text-sm text-slate-500">No active games right now. Check back later!</p>
         </Card>
       )}
-      {current.map((g) => (
-        <GameCard key={g.id} game={g} past={false} />
+      {groupByCategory(current).map((group) => (
+        <section key={group.name} className="space-y-3">
+          <h2 className="pt-2 text-sm font-bold uppercase tracking-wide text-slate-400">
+            📁 {group.name}
+          </h2>
+          {group.games.map((g) => (
+            <GameCard key={g.id} game={g} past={false} />
+          ))}
+        </section>
       ))}
 
       {past.length > 0 && (
@@ -104,4 +111,17 @@ export default function StudentDashboard() {
       )}
     </div>
   )
+}
+
+/** Groups games by categoryName (alphabetical), with the ungrouped "General" bucket last. */
+function groupByCategory(games: StudentGameSummary[]) {
+  const byCategory = new Map<string, StudentGameSummary[]>()
+  for (const g of games) {
+    const key = g.categoryName ?? 'General'
+    byCategory.set(key, [...(byCategory.get(key) ?? []), g])
+  }
+  const names = [...byCategory.keys()].filter((n) => n !== 'General').sort()
+  const result = names.map((name) => ({ name, games: byCategory.get(name)! }))
+  if (byCategory.has('General')) result.push({ name: 'General', games: byCategory.get('General')! })
+  return result
 }
