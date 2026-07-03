@@ -69,6 +69,94 @@ public class AdminsController(
         return ToDto(admin);
     }
 
+    /// <summary>Updates PII + display name (uniqueness enforced).</summary>
+    [HttpPut("{id}")]
+    public async Task<ActionResult<AdminAccountDto>> Update(string id, UpdateAdminRequest request)
+    {
+        var admin = await FindAdminAsync(id);
+        if (admin is null)
+            return NotFound();
+
+        var displayName = request.DisplayName?.Trim();
+        if (!string.IsNullOrEmpty(displayName) && displayName != admin.DisplayName)
+        {
+            if (await userManager.Users.AnyAsync(u => u.Id != admin.Id && u.DisplayName == displayName))
+                return Conflict(new { message = $"Display name '{displayName}' is already taken." });
+            admin.DisplayName = displayName;
+        }
+
+        admin.FirstName = request.FirstName;
+        admin.LastName = request.LastName;
+        admin.Email = request.Email;
+
+        var result = await userManager.UpdateAsync(admin);
+        if (!result.Succeeded)
+            return BadRequest(new { errors = result.Errors.Select(e => e.Description) });
+
+        return ToDto(admin);
+    }
+
+    /// <summary>Emails the admin a single-use link to reset their password.</summary>
+    [HttpPost("{id}/reset-password")]
+    public async Task<IActionResult> SendPasswordReset(string id)
+    {
+        var admin = await FindAdminAsync(id);
+        if (admin is null)
+            return NotFound();
+
+        var error = await lifecycle.SendPasswordResetAsync(admin, "A super admin");
+        if (error is not null)
+            return error.Value.Status switch
+            {
+                HttpStatusCode.Conflict => Conflict(new { message = error.Value.Message }),
+                HttpStatusCode.BadGateway => StatusCode(StatusCodes.Status502BadGateway,
+                    new { message = error.Value.Message }),
+                _ => BadRequest(new { message = error.Value.Message })
+            };
+
+        return NoContent();
+    }
+
+    /// <summary>Blocks login while keeping the account.</summary>
+    [HttpPost("{id}/deactivate")]
+    public async Task<ActionResult<AdminAccountDto>> Deactivate(string id)
+    {
+        var admin = await FindAdminAsync(id);
+        if (admin is null)
+            return NotFound();
+
+        admin.IsActive = false;
+        await userManager.UpdateAsync(admin);
+        return ToDto(admin);
+    }
+
+    [HttpPost("{id}/reactivate")]
+    public async Task<ActionResult<AdminAccountDto>> Reactivate(string id)
+    {
+        var admin = await FindAdminAsync(id);
+        if (admin is null)
+            return NotFound();
+
+        admin.IsActive = true;
+        await userManager.UpdateAsync(admin);
+        return ToDto(admin);
+    }
+
+    /// <summary>
+    /// Hard delete. Safe for admins: games/categories/attempts carry no
+    /// ownership FK to admin users, so nothing is orphaned.
+    /// </summary>
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> Delete(string id)
+    {
+        var admin = await FindAdminAsync(id);
+        if (admin is null)
+            return NotFound();
+
+        await userManager.DeleteAsync(admin);
+        return NoContent();
+    }
+
     // ─── Helpers ───────────────────────────────────────────────────────────
 
     /// <summary>Admin-role accounts only — SuperAdmin/User ids yield 404.</summary>

@@ -11,7 +11,9 @@ export interface AuthUser {
 
 interface AuthContextValue {
   user: AuthUser | null
-  isTeacher: boolean
+  /** True for Admin AND SuperAdmin — gates the admin (teacher) UI. */
+  isAdmin: boolean
+  isSuperAdmin: boolean
   login: (username: string, password: string) => Promise<AuthUser>
   logout: () => void
   /** Called after a successful first-login password change. */
@@ -73,7 +75,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider
       value={{
         user,
-        isTeacher: user?.roles.includes('Teacher') ?? false,
+        isAdmin: user?.roles.some((r) => r === 'Admin' || r === 'SuperAdmin') ?? false,
+        isSuperAdmin: user?.roles.includes('SuperAdmin') ?? false,
         login,
         logout,
         clearMustChangePassword,

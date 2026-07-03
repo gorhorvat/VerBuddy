@@ -14,3 +14,4 @@ appsettings.Development.json
 # Dev email pickup directory (contains plaintext credentials)
 Backend/App_Data/
 .superpowers/
+Frontend/tsconfig.tsbuildinfo

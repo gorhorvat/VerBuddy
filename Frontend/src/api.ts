@@ -183,6 +183,18 @@ export interface StudentAdmin {
   mustChangePassword: boolean
 }
 
+export interface AdminAccount {
+  id: string
+  username: string
+  firstName: string | null
+  lastName: string | null
+  email: string | null
+  displayName: string
+  isActive: boolean
+  activatedAt: string | null
+  mustChangePassword: boolean
+}
+
 export interface ImportStudentRow {
   username: string
   firstName: string | null

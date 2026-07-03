@@ -13,9 +13,10 @@ import GameEditor from './pages/teacher/GameEditor'
 import GameAnswers from './pages/teacher/GameAnswers'
 import Reviews from './pages/teacher/Reviews'
 import Students from './pages/teacher/Students'
+import Admins from './pages/superadmin/Admins'
 
 function AppRoutes() {
-  const { user, isTeacher } = useAuth()
+  const { user, isAdmin, isSuperAdmin } = useAuth()
 
   if (!user) {
     return (
@@ -35,13 +36,14 @@ function AppRoutes() {
     <Routes>
       <Route element={<Layout />}>
         <Route path="/leaderboard" element={<Leaderboard />} />
-        {isTeacher ? (
+        {isAdmin ? (
           <>
             <Route path="/teacher/games" element={<TeacherGames />} />
             <Route path="/teacher/games/:id" element={<GameEditor />} />
             <Route path="/teacher/games/:id/answers" element={<GameAnswers />} />
             <Route path="/teacher/reviews" element={<Reviews />} />
             <Route path="/teacher/students" element={<Students />} />
+            {isSuperAdmin && <Route path="/superadmin/admins" element={<Admins />} />}
             <Route path="*" element={<Navigate to="/teacher/games" replace />} />
           </>
         ) : (

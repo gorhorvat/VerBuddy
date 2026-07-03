@@ -6,13 +6,14 @@ import { useAuth } from '../auth'
  * and a bottom tab bar on phones that becomes inline top navigation on ≥sm.
  */
 export default function Layout() {
-  const { user, isTeacher, logout } = useAuth()
+  const { user, isAdmin, isSuperAdmin, logout } = useAuth()
 
-  const tabs = isTeacher
+  const tabs = isAdmin
     ? [
         { to: '/teacher/games', label: 'Games', icon: '🎲' },
         { to: '/teacher/reviews', label: 'Reviews', icon: '📝' },
         { to: '/teacher/students', label: 'Students', icon: '👥' },
+        ...(isSuperAdmin ? [{ to: '/superadmin/admins', label: 'Admins', icon: '🛡️' }] : []),
         { to: '/leaderboard', label: 'Ranks', icon: '🏆' },
       ]
     : [
@@ -31,7 +32,11 @@ export default function Layout() {
         <div className="min-w-0">
           <p className="truncate text-sm font-bold text-indigo-700">
             {user?.displayName}
-            {isTeacher && <span className="ml-2 rounded bg-indigo-100 px-1.5 py-0.5 text-xs">Teacher</span>}
+            {isAdmin && (
+              <span className="ml-2 rounded bg-indigo-100 px-1.5 py-0.5 text-xs">
+                {isSuperAdmin ? 'Super Admin' : 'Admin'}
+              </span>
+            )}
           </p>
         </div>
         <nav className="hidden items-center gap-1 sm:flex">

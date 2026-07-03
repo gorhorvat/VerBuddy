@@ -91,4 +91,84 @@ public class AdminManagementTests(ApiFactory factory)
         }, Json);
         Assert.Equal(HttpStatusCode.Conflict, second.StatusCode);
     }
+
+    [Fact]
+    public async Task Update_edits_details_and_enforces_display_name_uniqueness()
+    {
+        using var super = await factory.SuperAdminClientAsync();
+        var admin = await factory.CreateActivatedAdminAsync(super);
+        var other = await factory.CreateActivatedAdminAsync(super);
+
+        var updated = await super.PutAsJsonAsync($"/api/superadmin/admins/{admin.Id}", new
+        {
+            firstName = "New",
+            lastName = "Name",
+            email = "new.email@test.local",
+            displayName = $"R-{admin.Username}"
+        }, Json);
+        updated.EnsureSuccessStatusCode();
+        var dto = (await updated.Content.ReadFromJsonAsync<AdminAccountDto>(Json))!;
+        Assert.Equal("New", dto.FirstName);
+        Assert.Equal("new.email@test.local", dto.Email);
+        Assert.Equal($"R-{admin.Username}", dto.DisplayName);
+
+        // Taking the other admin's display name conflicts.
+        var conflict = await super.PutAsJsonAsync($"/api/superadmin/admins/{other.Id}", new
+        {
+            firstName = "X",
+            lastName = "Y",
+            email = "x@test.local",
+            displayName = $"R-{admin.Username}"
+        }, Json);
+        Assert.Equal(HttpStatusCode.Conflict, conflict.StatusCode);
+    }
+
+    [Fact]
+    public async Task Reset_password_emails_link()
+    {
+        using var super = await factory.SuperAdminClientAsync();
+        var admin = await factory.CreateActivatedAdminAsync(super);
+        var email = $"{admin.Username}@test.local";
+
+        var response = await super.PostAsync($"/api/superadmin/admins/{admin.Id}/reset-password", null);
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        Assert.Contains("/reset-password?user=", factory.Emails.LastTo(email).Body);
+    }
+
+    [Fact]
+    public async Task Deactivate_blocks_login_and_reactivate_restores()
+    {
+        using var super = await factory.SuperAdminClientAsync();
+        var admin = await factory.CreateActivatedAdminAsync(super);
+
+        var deactivate = await super.PostAsync($"/api/superadmin/admins/{admin.Id}/deactivate", null);
+        deactivate.EnsureSuccessStatusCode();
+
+        using var client = factory.CreateClient();
+        var login = await client.PostAsJsonAsync("/api/auth/login",
+            new { username = admin.Username, password = admin.Password }, Json);
+        Assert.Equal(HttpStatusCode.Unauthorized, login.StatusCode);
+
+        var reactivate = await super.PostAsync($"/api/superadmin/admins/{admin.Id}/reactivate", null);
+        reactivate.EnsureSuccessStatusCode();
+        await factory.LoginAsync(admin.Username, admin.Password); // Throws if login fails.
+    }
+
+    [Fact]
+    public async Task Delete_removes_account()
+    {
+        using var super = await factory.SuperAdminClientAsync();
+        var admin = await factory.CreateActivatedAdminAsync(super);
+
+        var delete = await super.DeleteAsync($"/api/superadmin/admins/{admin.Id}");
+        Assert.Equal(HttpStatusCode.NoContent, delete.StatusCode);
+
+        using var client = factory.CreateClient();
+        var login = await client.PostAsJsonAsync("/api/auth/login",
+            new { username = admin.Username, password = admin.Password }, Json);
+        Assert.Equal(HttpStatusCode.Unauthorized, login.StatusCode);
+
+        var roster = await super.GetFromJsonAsync<List<AdminAccountDto>>("/api/superadmin/admins", Json);
+        Assert.DoesNotContain(roster!, a => a.Id == admin.Id);
+    }
 }
