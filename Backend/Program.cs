@@ -11,7 +11,11 @@ var builder = WebApplication.CreateBuilder(args);
 
 // ── Database ──────────────────────────────────────────────────────────────
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(
+        builder.Configuration.GetConnectionString("DefaultConnection"),
+        // Azure SQL serverless auto-pauses; retries ride out the ~30-60s
+        // wake-up (error 40613) instead of crashing at startup.
+        sql => sql.EnableRetryOnFailure(maxRetryCount: 6, maxRetryDelay: TimeSpan.FromSeconds(15), errorNumbersToAdd: null)));
 
 // ── Identity core ─────────────────────────────────────────────────────────
 builder.Services.AddIdentityCore<ApplicationUser>(options =>
