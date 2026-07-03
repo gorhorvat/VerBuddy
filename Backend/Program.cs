@@ -46,6 +46,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddAuthorization();
 
 builder.Services.AddScoped<ITokenService, TokenService>();
+builder.Services.AddScoped<AccountLifecycleService>();
 // Real SMTP when Email:Smtp:Host is configured; otherwise the dev transport
 // writes emails as .txt files into Email:PickupDirectory.
 if (!string.IsNullOrEmpty(builder.Configuration["Email:Smtp:Host"]))
