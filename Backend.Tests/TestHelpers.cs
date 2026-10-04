@@ -153,10 +153,10 @@ public static class TestHelpers
     public static string ExtractPassword(string emailBody) =>
         Regex.Match(emailBody, @"Password:\s*(\S+)").Groups[1].Value;
 
-    // ─── Games ─────────────────────────────────────────────────────────────
+    // ─── Assignments ─────────────────────────────────────────────────────────────
 
-    /// <summary>Creates a game with one SingleChoice question ("A"/"B", B correct, 1 pt).</summary>
-    public static async Task<GameDetailDto> CreateSingleChoiceGameAsync(
+    /// <summary>Creates an assignment with one SingleChoice question ("A"/"B", B correct, 1 pt).</summary>
+    public static async Task<AssignmentDetailDto> CreateSingleChoiceAssignmentAsync(
         this HttpClient teacher,
         int? timeLimitSeconds = null,
         int xpReward = 100,
@@ -164,19 +164,19 @@ public static class TestHelpers
         int? categoryId = null,
         bool activate = true)
     {
-        var create = await teacher.PostAsJsonAsync("/api/admin/games", new
+        var create = await teacher.PostAsJsonAsync("/api/admin/assignments", new
         {
-            title = Unique("Game"),
-            gameType = "SingleChoice",
+            title = Unique("Assignment"),
+            assignmentType = "SingleChoice",
             timeLimitSeconds,
             xpReward,
             requireFeedback,
             categoryId
         }, Json);
         create.EnsureSuccessStatusCode();
-        var game = (await create.Content.ReadFromJsonAsync<GameDetailDto>(Json))!;
+        var assignment = (await create.Content.ReadFromJsonAsync<AssignmentDetailDto>(Json))!;
 
-        var question = await teacher.PostAsJsonAsync($"/api/admin/games/{game.Id}/questions", new
+        var question = await teacher.PostAsJsonAsync($"/api/admin/assignments/{assignment.Id}/questions", new
         {
             prompt = "Pick B.",
             order = 1,
@@ -187,28 +187,28 @@ public static class TestHelpers
 
         if (activate)
         {
-            var state = await teacher.PostAsJsonAsync($"/api/admin/games/{game.Id}/state", new { state = "Active" }, Json);
+            var state = await teacher.PostAsJsonAsync($"/api/admin/assignments/{assignment.Id}/state", new { state = "Active" }, Json);
             state.EnsureSuccessStatusCode();
         }
 
-        return (await teacher.GetFromJsonAsync<GameDetailDto>($"/api/admin/games/{game.Id}", Json))!;
+        return (await teacher.GetFromJsonAsync<AssignmentDetailDto>($"/api/admin/assignments/{assignment.Id}", Json))!;
     }
 
-    /// <summary>Creates an Active WordMatching game: one question, 4 pairs, 4 points.</summary>
-    public static async Task<GameDetailDto> CreateWordMatchingGameAsync(
+    /// <summary>Creates an Active Matching assignment: one question, 4 pairs, 4 points.</summary>
+    public static async Task<AssignmentDetailDto> CreateMatchingAssignmentAsync(
         this HttpClient teacher, int xpReward = 100)
     {
-        var create = await teacher.PostAsJsonAsync("/api/admin/games", new
+        var create = await teacher.PostAsJsonAsync("/api/admin/assignments", new
         {
             title = Unique("Match"),
-            gameType = "WordMatching",
+            assignmentType = "Matching",
             timeLimitSeconds = (int?)null,
             xpReward
         }, Json);
         create.EnsureSuccessStatusCode();
-        var game = (await create.Content.ReadFromJsonAsync<GameDetailDto>(Json))!;
+        var assignment = (await create.Content.ReadFromJsonAsync<AssignmentDetailDto>(Json))!;
 
-        var question = await teacher.PostAsJsonAsync($"/api/admin/games/{game.Id}/questions", new
+        var question = await teacher.PostAsJsonAsync($"/api/admin/assignments/{assignment.Id}/questions", new
         {
             prompt = "Match the pairs.",
             order = 1,
@@ -217,25 +217,25 @@ public static class TestHelpers
         }, Json);
         question.EnsureSuccessStatusCode();
 
-        var state = await teacher.PostAsJsonAsync($"/api/admin/games/{game.Id}/state", new { state = "Active" }, Json);
+        var state = await teacher.PostAsJsonAsync($"/api/admin/assignments/{assignment.Id}/state", new { state = "Active" }, Json);
         state.EnsureSuccessStatusCode();
 
-        return (await teacher.GetFromJsonAsync<GameDetailDto>($"/api/admin/games/{game.Id}", Json))!;
+        return (await teacher.GetFromJsonAsync<AssignmentDetailDto>($"/api/admin/assignments/{assignment.Id}", Json))!;
     }
 
-    // ─── Gameplay ──────────────────────────────────────────────────────────
+    // ─── AttemptFlow ──────────────────────────────────────────────────────────
 
-    public static async Task<StartAttemptResponse> StartAsync(this HttpClient student, int gameId)
+    public static async Task<StartAttemptResponse> StartAsync(this HttpClient student, int assignmentId)
     {
-        var response = await student.PostAsync($"/api/student/games/{gameId}/start", null);
+        var response = await student.PostAsync($"/api/student/assignments/{assignmentId}/start", null);
         response.EnsureSuccessStatusCode();
         return (await response.Content.ReadFromJsonAsync<StartAttemptResponse>(Json))!;
     }
 
     public static async Task<AttemptResultDto> SubmitAsync(
-        this HttpClient student, int gameId, int questionId, object answer)
+        this HttpClient student, int assignmentId, int questionId, object answer)
     {
-        var response = await student.PostAsJsonAsync($"/api/student/games/{gameId}/submit",
+        var response = await student.PostAsJsonAsync($"/api/student/assignments/{assignmentId}/submit",
             new { answers = new[] { new { questionId, answer } } }, Json);
         response.EnsureSuccessStatusCode();
         return (await response.Content.ReadFromJsonAsync<AttemptResultDto>(Json))!;

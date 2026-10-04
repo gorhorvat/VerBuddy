@@ -3,12 +3,12 @@ using Backend.Models;
 
 namespace Backend.DTOs;
 
-// ─── Teacher-admin game management payloads ───────────────────────────────
+// ─── Teacher-admin assignment management payloads ───────────────────────────────
 
-public sealed record CreateGameRequest(
+public sealed record CreateAssignmentRequest(
     [Required, MaxLength(200)] string Title,
     [MaxLength(1000)] string? Description,
-    GameType GameType,
+    AssignmentType AssignmentType,
     /// <summary>Null or 0 = untimed. Capped at 4 hours.</summary>
     [Range(0, 14400)] int? TimeLimitSeconds,
     [Range(0, 10000)] int XpReward = 100,
@@ -16,7 +16,7 @@ public sealed record CreateGameRequest(
     bool RequireFeedback = false,
     int? CategoryId = null);
 
-public sealed record UpdateGameRequest(
+public sealed record UpdateAssignmentRequest(
     [Required, MaxLength(200)] string Title,
     [MaxLength(1000)] string? Description,
     [Range(0, 14400)] int? TimeLimitSeconds,
@@ -24,13 +24,13 @@ public sealed record UpdateGameRequest(
     bool RequireFeedback,
     int? CategoryId);
 
-public sealed record ChangeGameStateRequest(GameState State);
+public sealed record ChangeAssignmentStateRequest(AssignmentState State);
 
 public sealed record QuestionRequest(
     [Required, MaxLength(2000)] string Prompt,
     [Range(1, 1000)] int Order,
     [Range(1, 1000)] int Points,
-    /// <summary>Game-type-specific payload; validated by GameContentValidator.</summary>
+    /// <summary>Assignment-type-specific payload; validated by QuestionContentValidator.</summary>
     [Required] string JsonContent);
 
 public sealed record QuestionAdminDto(
@@ -40,12 +40,12 @@ public sealed record QuestionAdminDto(
     int Points,
     string JsonContent);
 
-public sealed record GameSummaryDto(
+public sealed record AssignmentSummaryDto(
     int Id,
     string Title,
     string? Description,
-    GameType GameType,
-    GameState State,
+    AssignmentType AssignmentType,
+    AssignmentState State,
     int? TimeLimitSeconds,
     int XpReward,
     bool RequireFeedback,
@@ -57,12 +57,12 @@ public sealed record GameSummaryDto(
     /// <summary>Display names of students who attempted, in start order (for the avatar stack).</summary>
     List<string> AttemptDisplayNames);
 
-public sealed record GameDetailDto(
+public sealed record AssignmentDetailDto(
     int Id,
     string Title,
     string? Description,
-    GameType GameType,
-    GameState State,
+    AssignmentType AssignmentType,
+    AssignmentState State,
     int? TimeLimitSeconds,
     int XpReward,
     bool RequireFeedback,

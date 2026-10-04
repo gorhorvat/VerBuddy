@@ -35,7 +35,7 @@ public class AuthAndGdprTests(ApiFactory factory)
         var student = await factory.CreateActivatedStudentAsync(teacher);
         using var client = await factory.StudentClientAsync(student);
 
-        foreach (var path in new[] { "/api/admin/games", "/api/admin/students", "/api/admin/categories", "/api/admin/attempts" })
+        foreach (var path in new[] { "/api/admin/assignments", "/api/admin/students", "/api/admin/categories", "/api/admin/attempts" })
         {
             var response = await client.GetAsync(path);
             Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
@@ -46,7 +46,7 @@ public class AuthAndGdprTests(ApiFactory factory)
     public async Task Anonymous_CannotAccessProtectedEndpoints()
     {
         using var client = factory.CreateClient();
-        foreach (var path in new[] { "/api/admin/games", "/api/student/games", "/api/leaderboard", "/api/auth/me" })
+        foreach (var path in new[] { "/api/admin/assignments", "/api/student/assignments", "/api/leaderboard", "/api/auth/me" })
         {
             var response = await client.GetAsync(path);
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
@@ -69,14 +69,14 @@ public class AuthAndGdprTests(ApiFactory factory)
     }
 
     [Fact]
-    public async Task StudentGamePayload_DoesNotContainAnswerKey()
+    public async Task StudentAssignmentPayload_DoesNotContainAnswerKey()
     {
         using var teacher = await factory.TeacherClientAsync();
-        var game = await teacher.CreateSingleChoiceGameAsync();
+        var assignment = await teacher.CreateSingleChoiceAssignmentAsync();
         var student = await factory.CreateActivatedStudentAsync(teacher);
         using var client = await factory.StudentClientAsync(student);
 
-        var response = await client.PostAsync($"/api/student/games/{game.Id}/start", null);
+        var response = await client.PostAsync($"/api/student/assignments/{assignment.Id}/start", null);
         var raw = await response.Content.ReadAsStringAsync();
 
         Assert.Contains("choices", raw);

@@ -8,18 +8,18 @@ using static Backend.Tests.TestHelpers;
 namespace Backend.Tests;
 
 [Collection("Api")]
-public class GameplayTests(ApiFactory factory)
+public class AttemptFlowTests(ApiFactory factory)
 {
     [Fact]
     public async Task CorrectSubmission_AutoGradesAndAwardsXp()
     {
         using var teacher = await factory.TeacherClientAsync();
-        var game = await teacher.CreateSingleChoiceGameAsync(xpReward: 50);
+        var assignment = await teacher.CreateSingleChoiceAssignmentAsync(xpReward: 50);
         var student = await factory.CreateActivatedStudentAsync(teacher);
         using var client = await factory.StudentClientAsync(student);
 
-        var start = await client.StartAsync(game.Id);
-        var result = await client.SubmitAsync(game.Id, start.Questions[0].Id, new { selectedIndex = 1 });
+        var start = await client.StartAsync(assignment.Id);
+        var result = await client.SubmitAsync(assignment.Id, start.Questions[0].Id, new { selectedIndex = 1 });
 
         Assert.Equal(AttemptStatus.Completed, result.Status);
         Assert.Equal(1, result.Score);
@@ -31,17 +31,17 @@ public class GameplayTests(ApiFactory factory)
     public async Task SecondStart_ResumesSameAttempt_AndLocksAfterSubmit()
     {
         using var teacher = await factory.TeacherClientAsync();
-        var game = await teacher.CreateSingleChoiceGameAsync();
+        var assignment = await teacher.CreateSingleChoiceAssignmentAsync();
         var student = await factory.CreateActivatedStudentAsync(teacher);
         using var client = await factory.StudentClientAsync(student);
 
-        var first = await client.StartAsync(game.Id);
-        var second = await client.StartAsync(game.Id);
+        var first = await client.StartAsync(assignment.Id);
+        var second = await client.StartAsync(assignment.Id);
         Assert.Equal(first.AttemptId, second.AttemptId); // Resume, not a new attempt.
 
-        await client.SubmitAsync(game.Id, first.Questions[0].Id, new { selectedIndex = 0 });
+        await client.SubmitAsync(assignment.Id, first.Questions[0].Id, new { selectedIndex = 0 });
 
-        var afterSubmit = await client.PostAsync($"/api/student/games/{game.Id}/start", null);
+        var afterSubmit = await client.PostAsync($"/api/student/assignments/{assignment.Id}/start", null);
         Assert.Equal(HttpStatusCode.Conflict, afterSubmit.StatusCode); // One-attempt lock.
     }
 
@@ -49,11 +49,11 @@ public class GameplayTests(ApiFactory factory)
     public async Task LateSubmission_IsInvalidated_WithZeroXp()
     {
         using var teacher = await factory.TeacherClientAsync();
-        var game = await teacher.CreateSingleChoiceGameAsync(timeLimitSeconds: 5);
+        var assignment = await teacher.CreateSingleChoiceAssignmentAsync(timeLimitSeconds: 5);
         var student = await factory.CreateActivatedStudentAsync(teacher);
         using var client = await factory.StudentClientAsync(student);
 
-        var start = await client.StartAsync(game.Id);
+        var start = await client.StartAsync(assignment.Id);
 
         // Backdate the attempt past limit + grace instead of sleeping.
         await factory.WithDbAsync(async db =>
@@ -63,7 +63,7 @@ public class GameplayTests(ApiFactory factory)
             await db.SaveChangesAsync();
         });
 
-        var result = await client.SubmitAsync(game.Id, start.Questions[0].Id, new { selectedIndex = 1 });
+        var result = await client.SubmitAsync(assignment.Id, start.Questions[0].Id, new { selectedIndex = 1 });
 
         Assert.Equal(AttemptStatus.Invalidated, result.Status);
         Assert.Equal(0, result.Score);
@@ -74,12 +74,12 @@ public class GameplayTests(ApiFactory factory)
     public async Task RequireFeedback_ParksPerfectSubmissionForReview()
     {
         using var teacher = await factory.TeacherClientAsync();
-        var game = await teacher.CreateSingleChoiceGameAsync(xpReward: 40, requireFeedback: true);
+        var assignment = await teacher.CreateSingleChoiceAssignmentAsync(xpReward: 40, requireFeedback: true);
         var student = await factory.CreateActivatedStudentAsync(teacher);
         using var client = await factory.StudentClientAsync(student);
 
-        var start = await client.StartAsync(game.Id);
-        var result = await client.SubmitAsync(game.Id, start.Questions[0].Id, new { selectedIndex = 1 });
+        var start = await client.StartAsync(assignment.Id);
+        var result = await client.SubmitAsync(assignment.Id, start.Questions[0].Id, new { selectedIndex = 1 });
 
         Assert.Equal(AttemptStatus.PendingReview, result.Status); // Despite the perfect score.
         Assert.Equal(40, result.EarnedXp); // Provisional XP.
@@ -94,16 +94,16 @@ public class GameplayTests(ApiFactory factory)
     }
 
     [Fact]
-    public async Task WordMatching_EarnsPartialCredit()
+    public async Task Matching_EarnsPartialCredit()
     {
         using var teacher = await factory.TeacherClientAsync();
-        var game = await teacher.CreateWordMatchingGameAsync(xpReward: 100);
+        var assignment = await teacher.CreateMatchingAssignmentAsync(xpReward: 100);
         var student = await factory.CreateActivatedStudentAsync(teacher);
         using var client = await factory.StudentClientAsync(student);
 
-        var start = await client.StartAsync(game.Id);
+        var start = await client.StartAsync(assignment.Id);
         // 3 of 4 correct.
-        var result = await client.SubmitAsync(game.Id, start.Questions[0].Id, new
+        var result = await client.SubmitAsync(assignment.Id, start.Questions[0].Id, new
         {
             matches = new Dictionary<string, string>
             {
@@ -120,12 +120,12 @@ public class GameplayTests(ApiFactory factory)
     public async Task OverrideAnswer_RecomputesScoreAndXp()
     {
         using var teacher = await factory.TeacherClientAsync();
-        var game = await teacher.CreateWordMatchingGameAsync(xpReward: 100);
+        var assignment = await teacher.CreateMatchingAssignmentAsync(xpReward: 100);
         var student = await factory.CreateActivatedStudentAsync(teacher);
         using var client = await factory.StudentClientAsync(student);
 
-        var start = await client.StartAsync(game.Id);
-        var result = await client.SubmitAsync(game.Id, start.Questions[0].Id, new
+        var start = await client.StartAsync(assignment.Id);
+        var result = await client.SubmitAsync(assignment.Id, start.Questions[0].Id, new
         {
             matches = new Dictionary<string, string>
             {
@@ -134,7 +134,7 @@ public class GameplayTests(ApiFactory factory)
         });
         Assert.Equal(3, result.Score);
 
-        var questionId = game.Questions.Single().Id;
+        var questionId = assignment.Questions.Single().Id;
         var overrideResponse = await teacher.PostAsJsonAsync(
             $"/api/admin/attempts/{result.AttemptId}/override-answer",
             new { questionId, points = 4 }, Json);
@@ -155,21 +155,21 @@ public class GameplayTests(ApiFactory factory)
     public async Task Dashboard_ShowsActiveAndClosed_NeverDrafts()
     {
         using var teacher = await factory.TeacherClientAsync();
-        var draft = await teacher.CreateSingleChoiceGameAsync(activate: false);
-        var active = await teacher.CreateSingleChoiceGameAsync();
-        var closed = await teacher.CreateSingleChoiceGameAsync();
-        await teacher.PostAsJsonAsync($"/api/admin/games/{closed.Id}/state", new { state = "Closed" }, Json);
+        var draft = await teacher.CreateSingleChoiceAssignmentAsync(activate: false);
+        var active = await teacher.CreateSingleChoiceAssignmentAsync();
+        var closed = await teacher.CreateSingleChoiceAssignmentAsync();
+        await teacher.PostAsJsonAsync($"/api/admin/assignments/{closed.Id}/state", new { state = "Closed" }, Json);
 
         var student = await factory.CreateActivatedStudentAsync(teacher);
         using var client = await factory.StudentClientAsync(student);
-        var dashboard = (await client.GetFromJsonAsync<List<StudentGameSummaryDto>>("/api/student/games", Json))!;
+        var dashboard = (await client.GetFromJsonAsync<List<StudentAssignmentSummaryDto>>("/api/student/assignments", Json))!;
 
         Assert.DoesNotContain(dashboard, g => g.Id == draft.Id);
-        Assert.Equal(GameState.Active, dashboard.Single(g => g.Id == active.Id).State);
-        Assert.Equal(GameState.Closed, dashboard.Single(g => g.Id == closed.Id).State);
+        Assert.Equal(AssignmentState.Active, dashboard.Single(g => g.Id == active.Id).State);
+        Assert.Equal(AssignmentState.Closed, dashboard.Single(g => g.Id == closed.Id).State);
 
-        // Closed games cannot be started.
-        var startClosed = await client.PostAsync($"/api/student/games/{closed.Id}/start", null);
+        // Closed assignments cannot be started.
+        var startClosed = await client.PostAsync($"/api/student/assignments/{closed.Id}/start", null);
         Assert.Equal(HttpStatusCode.NotFound, startClosed.StatusCode);
     }
 }

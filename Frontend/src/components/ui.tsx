@@ -82,9 +82,9 @@ export function Spinner() {
 export const inputClass =
   'w-full rounded-lg border border-white/20 bg-white/[0.04] px-4 py-3 text-base text-slate-900 placeholder:text-slate-400 focus:border-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-600/25'
 
-export const gameTypeLabels: Record<string, string> = {
+export const assignmentTypeLabels: Record<string, string> = {
   SingleChoice: 'Single Choice',
   MultipleChoice: 'Multiple Choice',
   FillInTheBlanks: 'Fill in the Blanks',
-  WordMatching: 'Word Matching',
+  Matching: 'Matching',
 }

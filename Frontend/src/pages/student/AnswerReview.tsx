@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { api, type MyAnswers } from '../../api'
-import { Badge, Card, ErrorText, Spinner, gameTypeLabels } from '../../components/ui'
+import { Badge, Card, ErrorText, Spinner, assignmentTypeLabels } from '../../components/ui'
 import AnswerView from '../../components/AnswerView'
 
 /** Read-only review of the student's own finalized attempt, with correct answers. */
@@ -11,7 +11,7 @@ export default function AnswerReview() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    api<MyAnswers>(`/api/student/games/${id}/answers`)
+    api<MyAnswers>(`/api/student/assignments/${id}/answers`)
       .then(setData)
       .catch((e) => setError(e.message))
   }, [id])
@@ -20,7 +20,7 @@ export default function AnswerReview() {
     return (
       <div className="space-y-3">
         <ErrorText message={error} />
-        <Link to="/games" className="text-sm font-semibold text-indigo-600">← Back to games</Link>
+        <Link to="/assignments" className="text-sm font-semibold text-indigo-600">← Back to assignments</Link>
       </div>
     )
   }
@@ -28,12 +28,12 @@ export default function AnswerReview() {
 
   return (
     <div className="space-y-3">
-      <Link to="/games" className="text-sm font-semibold text-indigo-600">← Back to games</Link>
+      <Link to="/assignments" className="text-sm font-semibold text-indigo-600">← Back to assignments</Link>
       <div className="flex items-center justify-between gap-2">
         <h1 className="text-2xl font-bold">{data.title}</h1>
         <Badge value={data.result.status} />
       </div>
-      <p className="text-xs text-slate-500">{gameTypeLabels[data.gameType]}</p>
+      <p className="text-xs text-slate-500">{assignmentTypeLabels[data.assignmentType]}</p>
 
       <Card className="flex items-center justify-between !py-3">
         <span className="text-sm">
@@ -60,7 +60,7 @@ export default function AnswerReview() {
               {b.isOverridden && <span className="ml-1 text-amber-600">(adjusted by teacher)</span>}
             </span>
           </div>
-          <AnswerView gameType={data.gameType} breakdown={b} />
+          <AnswerView assignmentType={data.assignmentType} breakdown={b} />
         </Card>
       ))}
     </div>

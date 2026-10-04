@@ -1,24 +1,24 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { api, type Category, type GameDetail, type GameSummary, type GameType } from '../../api'
-import { Badge, Button, Card, ErrorText, Field, Spinner, gameTypeLabels, inputClass } from '../../components/ui'
+import { api, type Category, type AssignmentDetail, type AssignmentSummary, type AssignmentType } from '../../api'
+import { Badge, Button, Card, ErrorText, Field, Spinner, assignmentTypeLabels, inputClass } from '../../components/ui'
 import AvatarStack from '../../components/AvatarStack'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import Modal from '../../components/Modal'
 
-export default function TeacherGames() {
+export default function TeacherAssignments() {
   const navigate = useNavigate()
-  const [games, setGames] = useState<GameSummary[] | null>(null)
+  const [assignments, setAssignments] = useState<AssignmentSummary[] | null>(null)
   const [categories, setCategories] = useState<Category[]>([])
   const [error, setError] = useState<string | null>(null)
   const [showCreate, setShowCreate] = useState(false)
   const [showCategories, setShowCategories] = useState(false)
-  const [deleteTarget, setDeleteTarget] = useState<GameSummary | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<AssignmentSummary | null>(null)
 
   // Create form state
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
-  const [gameType, setGameType] = useState<GameType>('SingleChoice')
+  const [assignmentType, setAssignmentType] = useState<AssignmentType>('SingleChoice')
   const [timeLimit, setTimeLimit] = useState('')
   const [xpReward, setXpReward] = useState('100')
   const [requireFeedback, setRequireFeedback] = useState(false)
@@ -27,7 +27,7 @@ export default function TeacherGames() {
 
   const load = () =>
     Promise.all([
-      api<GameSummary[]>('/api/admin/games').then(setGames),
+      api<AssignmentSummary[]>('/api/admin/assignments').then(setAssignments),
       api<Category[]>('/api/admin/categories').then(setCategories),
     ]).catch((e) => setError(e.message))
 
@@ -48,12 +48,12 @@ export default function TeacherGames() {
   const create = (e: FormEvent) => {
     e.preventDefault()
     run(async () => {
-      await api('/api/admin/games', {
+      await api('/api/admin/assignments', {
         method: 'POST',
         body: {
           title,
           description: description || null,
-          gameType,
+          assignmentType,
           timeLimitSeconds: timeLimit ? Number(timeLimit) : null,
           xpReward: Number(xpReward),
           requireFeedback,
@@ -68,11 +68,11 @@ export default function TeacherGames() {
     })
   }
 
-  const useAsTemplate = async (g: GameSummary) => {
+  const useAsTemplate = async (g: AssignmentSummary) => {
     setError(null)
     try {
-      const copy = await api<GameDetail>(`/api/admin/games/${g.id}/duplicate`, { method: 'POST' })
-      navigate(`/teacher/games/${copy.id}`)
+      const copy = await api<AssignmentDetail>(`/api/admin/assignments/${g.id}/duplicate`, { method: 'POST' })
+      navigate(`/teacher/assignments/${copy.id}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'The action failed.')
     }
@@ -86,43 +86,43 @@ export default function TeacherGames() {
     setNewCategoryName('')
   }
 
-  // Games grouped: each category (alphabetical) plus a trailing General group.
+  // Assignments grouped: each category (alphabetical) plus a trailing General group.
   const groups = useMemo(() => {
-    if (!games) return []
-    const byCategory = new Map<number | null, GameSummary[]>()
-    for (const g of games) {
+    if (!assignments) return []
+    const byCategory = new Map<number | null, AssignmentSummary[]>()
+    for (const g of assignments) {
       const key = g.categoryId
       byCategory.set(key, [...(byCategory.get(key) ?? []), g])
     }
-    const result: { name: string; games: GameSummary[] }[] = categories
+    const result: { name: string; assignments: AssignmentSummary[] }[] = categories
       .filter((c) => byCategory.has(c.id))
-      .map((c) => ({ name: c.name, games: byCategory.get(c.id)! }))
-    if (byCategory.has(null)) result.push({ name: 'General', games: byCategory.get(null)! })
+      .map((c) => ({ name: c.name, assignments: byCategory.get(c.id)! }))
+    if (byCategory.has(null)) result.push({ name: 'General', assignments: byCategory.get(null)! })
     return result
-  }, [games, categories])
+  }, [assignments, categories])
 
-  if (!games) return <Spinner />
+  if (!assignments) return <Spinner />
 
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold">🎲 Games</h1>
+        <h1 className="text-2xl font-bold">📝 Assignments</h1>
         <div className="flex gap-3">
           <Button variant="secondary" onClick={() => setShowCategories(true)}>
             📁 Categories
           </Button>
-          <Button onClick={() => setShowCreate(true)}>+ New game</Button>
+          <Button onClick={() => setShowCreate(true)}>+ New assignment</Button>
         </div>
       </div>
       <ErrorText message={error} />
 
-      <Modal open={showCategories} title="Categories (classes)" onClose={() => setShowCategories(false)}>
+      <Modal open={showCategories} title="Categories" onClose={() => setShowCategories(false)}>
         <div className="space-y-4">
           {categories.map((c) => (
             <div key={c.id} className="flex items-center justify-between gap-2 rounded-xl bg-slate-50 px-3 py-2">
               <span className="text-sm font-semibold">{c.name}</span>
               <span className="flex-1 text-xs text-slate-400">
-                {c.gameCount} game{c.gameCount === 1 ? '' : 's'} · {c.studentCount} student{c.studentCount === 1 ? '' : 's'}
+                {c.assignmentCount} assignment{c.assignmentCount === 1 ? '' : 's'} · {c.studentCount} student{c.studentCount === 1 ? '' : 's'}
               </span>
               <Button
                 variant="danger"
@@ -134,7 +134,7 @@ export default function TeacherGames() {
             </div>
           ))}
           {categories.length === 0 && (
-            <p className="text-xs text-slate-500">No categories yet — games live under "General".</p>
+            <p className="text-xs text-slate-500">No categories yet — assignments live under "General".</p>
           )}
           <form onSubmit={addCategory} className="flex items-end gap-2">
             <Field label="New category" className="flex-1">
@@ -143,12 +143,12 @@ export default function TeacherGames() {
             <Button type="submit" variant="secondary" className="shrink-0">Add</Button>
           </form>
           <p className="text-sm text-slate-400">
-            Deleting a category never deletes its games or students — they move back to General/unassigned.
+            Deleting a category never deletes its assignments or students — they move back to General/unassigned.
           </p>
         </div>
       </Modal>
 
-      <Modal open={showCreate} title="New game" onClose={() => setShowCreate(false)}>
+      <Modal open={showCreate} title="New assignment" onClose={() => setShowCreate(false)}>
         <form onSubmit={create} className="space-y-4">
             <Field label="Title *">
               <input className={inputClass} placeholder="e.g. Irregular verbs quiz" value={title} onChange={(e) => setTitle(e.target.value)} required maxLength={200} />
@@ -157,14 +157,14 @@ export default function TeacherGames() {
               <input className={inputClass} placeholder="Optional" value={description} onChange={(e) => setDescription(e.target.value)} maxLength={1000} />
             </Field>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field label="Game type">
-                <select className={inputClass} value={gameType} onChange={(e) => setGameType(e.target.value as GameType)}>
-                  {Object.entries(gameTypeLabels).map(([value, label]) => (
+              <Field label="Assignment type">
+                <select className={inputClass} value={assignmentType} onChange={(e) => setAssignmentType(e.target.value as AssignmentType)}>
+                  {Object.entries(assignmentTypeLabels).map(([value, label]) => (
                     <option key={value} value={value}>{label}</option>
                   ))}
                 </select>
               </Field>
-              <Field label="Category (class)">
+              <Field label="Category">
                 <select className={inputClass} value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
                   <option value="">General</option>
                   {categories.map((c) => (
@@ -197,10 +197,10 @@ export default function TeacherGames() {
           </form>
       </Modal>
 
-      {games.length === 0 && (
+      {assignments.length === 0 && (
         <Card>
           <p className="text-base text-slate-500">
-            No games yet — click "+ New game" to create your first one.
+            No assignments yet — click "+ New assignment" to create your first one.
           </p>
         </Card>
       )}
@@ -210,13 +210,13 @@ export default function TeacherGames() {
           <h2 className="pt-2 text-sm font-bold uppercase tracking-wide text-slate-400">
             📁 {group.name}
           </h2>
-          {group.games.map((g) => (
+          {group.assignments.map((g) => (
             <Card key={g.id} className="space-y-3">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <h3 className="font-bold">{g.title}</h3>
                   <p className="text-xs text-slate-500">
-                    {gameTypeLabels[g.gameType]} · {g.questionCount} question{g.questionCount === 1 ? '' : 's'} ·{' '}
+                    {assignmentTypeLabels[g.assignmentType]} · {g.questionCount} question{g.questionCount === 1 ? '' : 's'} ·{' '}
                     {g.timeLimitSeconds ? `${g.timeLimitSeconds}s limit` : 'untimed'} · ⭐ {g.xpReward} XP
                     {g.requireFeedback && ' · 📝 manual grading'}
                   </p>
@@ -233,19 +233,19 @@ export default function TeacherGames() {
               )}
               <div className="flex flex-wrap items-center gap-2">
                 {g.state !== 'Active' && (
-                  <Link to={`/teacher/games/${g.id}`}><Button variant="secondary">Edit</Button></Link>
+                  <Link to={`/teacher/assignments/${g.id}`}><Button variant="secondary">Edit</Button></Link>
                 )}
                 {g.state === 'Draft' && (
-                  <Button variant="success" onClick={() => run(() => api(`/api/admin/games/${g.id}/state`, { method: 'POST', body: { state: 'Active' } }))}>Activate</Button>
+                  <Button variant="success" onClick={() => run(() => api(`/api/admin/assignments/${g.id}/state`, { method: 'POST', body: { state: 'Active' } }))}>Activate</Button>
                 )}
                 {g.state === 'Active' && (
-                  <Button variant="secondary" onClick={() => run(() => api(`/api/admin/games/${g.id}/state`, { method: 'POST', body: { state: 'Closed' } }))}>Close</Button>
+                  <Button variant="secondary" onClick={() => run(() => api(`/api/admin/assignments/${g.id}/state`, { method: 'POST', body: { state: 'Closed' } }))}>Close</Button>
                 )}
                 {g.state === 'Closed' && (
-                  <Button variant="secondary" onClick={() => run(() => api(`/api/admin/games/${g.id}/state`, { method: 'POST', body: { state: 'Active' } }))}>Reopen</Button>
+                  <Button variant="secondary" onClick={() => run(() => api(`/api/admin/assignments/${g.id}/state`, { method: 'POST', body: { state: 'Active' } }))}>Reopen</Button>
                 )}
                 {g.attemptCount > 0 && (
-                  <Link to={`/teacher/games/${g.id}/answers`}><Button variant="secondary">Answers</Button></Link>
+                  <Link to={`/teacher/assignments/${g.id}/answers`}><Button variant="secondary">Answers</Button></Link>
                 )}
                 <Button variant="secondary" onClick={() => useAsTemplate(g)}>Use as template</Button>
                 {g.attemptCount === 0 && (
@@ -255,7 +255,7 @@ export default function TeacherGames() {
                   className="ml-auto rounded-lg border border-white/20 bg-white/[0.04] px-2 py-1.5 text-xs"
                   value={g.categoryId ?? ''}
                   onChange={(e) =>
-                    run(() => api(`/api/admin/games/${g.id}/category`, {
+                    run(() => api(`/api/admin/assignments/${g.id}/category`, {
                       method: 'POST',
                       body: { categoryId: e.target.value ? Number(e.target.value) : null },
                     }))
@@ -275,14 +275,14 @@ export default function TeacherGames() {
 
       <ConfirmDialog
         open={deleteTarget !== null}
-        title="Delete game?"
+        title="Delete assignment?"
         message={`"${deleteTarget?.title}" and all of its questions will be permanently deleted. This cannot be undone.`}
-        confirmLabel="Delete game"
+        confirmLabel="Delete assignment"
         onCancel={() => setDeleteTarget(null)}
         onConfirm={() => {
           const id = deleteTarget!.id
           setDeleteTarget(null)
-          run(() => api(`/api/admin/games/${id}`, { method: 'DELETE' }))
+          run(() => api(`/api/admin/assignments/${id}`, { method: 'DELETE' }))
         }}
       />
     </div>

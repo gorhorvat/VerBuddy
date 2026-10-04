@@ -1,4 +1,4 @@
-// Answer input components, one per game type. Each parses the sanitized
+// Answer input components, one per assignment type. Each parses the sanitized
 // (answer-key-free) jsonContent from the backend and reports an answer object
 // in exactly the shape the grading service expects.
 
@@ -109,7 +109,7 @@ export function FillInTheBlanksInput({ jsonContent, value, onChange }: InputProp
 }
 
 /** Answer: { matches: Record<key, value> } — a value picker per key. */
-export function WordMatchingInput({ jsonContent, value, onChange }: InputProps) {
+export function MatchingInput({ jsonContent, value, onChange }: InputProps) {
   const { instructions, keys, values } = JSON.parse(jsonContent) as {
     instructions: string
     keys: string[]

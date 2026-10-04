@@ -7,9 +7,9 @@ namespace Backend.DTOs;
 
 public sealed record AttemptAdminDto(
     int Id,
-    int GameInstanceId,
-    string GameTitle,
-    GameType GameType,
+    int AssignmentId,
+    string AssignmentTitle,
+    AssignmentType AssignmentType,
     string StudentDisplayName,
     string? StudentFirstName,
     string? StudentLastName,

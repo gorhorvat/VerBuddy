@@ -35,7 +35,7 @@ public class ApplicationUser : IdentityUser
     /// </summary>
     public int TotalXp { get; set; }
 
-    /// <summary>The student's classes (teacher categories); empty = unassigned.</summary>
+    /// <summary>The student's categories; empty = unassigned.</summary>
     public ICollection<Category> Categories { get; set; } = new List<Category>();
 
     /// <summary>
@@ -60,6 +60,6 @@ public class ApplicationUser : IdentityUser
     public string? CreatedByAdminId { get; set; }
 
     // ── Navigation ────────────────────────────────────────────────────────
-    public ICollection<GameInstance> CreatedGames { get; set; } = new List<GameInstance>();
+    public ICollection<Assignment> CreatedAssignments { get; set; } = new List<Assignment>();
     public ICollection<StudentAttempt> Attempts { get; set; } = new List<StudentAttempt>();
 }

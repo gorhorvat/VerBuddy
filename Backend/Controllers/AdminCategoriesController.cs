@@ -9,10 +9,10 @@ using Microsoft.EntityFrameworkCore;
 namespace Backend.Controllers;
 
 /// <summary>
-/// Teacher-defined folders/classes for games and students. Deleting a category
-/// never deletes its contents — games move back to "General" (SetNull FK) and
-/// students simply lose that one class assignment (cascade-deleted join rows);
-/// any other classes they belong to are untouched.
+/// Teacher-defined folders for assignments and students. Deleting a category
+/// never deletes its contents — assignments move back to "General" (SetNull FK) and
+/// students simply lose that one category membership (cascade-deleted join rows);
+/// any other categories they belong to are untouched.
 /// </summary>
 [ApiController]
 [Route("api/admin/categories")]
@@ -31,7 +31,7 @@ public class AdminCategoriesController(AppDbContext db) : ControllerBase
 
         return await categories
             .OrderBy(c => c.Name)
-            .Select(c => new CategoryDto(c.Id, c.Name, c.Games.Count, c.Students.Count))
+            .Select(c => new CategoryDto(c.Id, c.Name, c.Assignments.Count, c.Students.Count))
             .ToListAsync();
     }
 
@@ -65,7 +65,7 @@ public class AdminCategoriesController(AppDbContext db) : ControllerBase
         await db.SaveChangesAsync();
 
         return new CategoryDto(category.Id, category.Name,
-            await db.GameInstances.CountAsync(g => g.CategoryId == id),
+            await db.Assignments.CountAsync(g => g.CategoryId == id),
             await db.Users.CountAsync(u => u.Categories.Any(c => c.Id == id)));
     }
 
@@ -77,7 +77,7 @@ public class AdminCategoriesController(AppDbContext db) : ControllerBase
         if (category is null)
             return NotFound();
 
-        db.Categories.Remove(category); // Games are SetNull'd; student join rows cascade-delete.
+        db.Categories.Remove(category); // Assignments are SetNull'd; student join rows cascade-delete.
         await db.SaveChangesAsync();
         return NoContent();
     }

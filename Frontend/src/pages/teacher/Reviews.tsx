@@ -1,21 +1,21 @@
 import { useEffect, useState } from 'react'
-import { api, type AnswerBreakdown, type AttemptAdmin, type GameAnswers } from '../../api'
+import { api, type AnswerBreakdown, type AttemptAdmin, type AssignmentAnswers } from '../../api'
 import { Badge, Button, Card, ErrorText, Spinner, inputClass } from '../../components/ui'
 import AnswerView from '../../components/AnswerView'
 
 // Pending attempts only carry the raw answersJson blob, but the admin
-// "answers" endpoint (already used by GameAnswers.tsx) returns every
+// "answers" endpoint (already used by AssignmentAnswers.tsx) returns every
 // attempt's answers resolved against the full question content — including
 // the answer key — so we can reuse AnswerView instead of duplicating its
-// choice/blank/pair rendering here. Cache per game so a review list with
-// several pending attempts on the same game only fetches it once.
-const gameAnswersCache = new Map<number, Promise<GameAnswers>>()
+// choice/blank/pair rendering here. Cache per assignment so a review list with
+// several pending attempts on the same assignment only fetches it once.
+const assignmentAnswersCache = new Map<number, Promise<AssignmentAnswers>>()
 
-function fetchGameAnswers(gameInstanceId: number): Promise<GameAnswers> {
-  let cached = gameAnswersCache.get(gameInstanceId)
+function fetchAssignmentAnswers(assignmentId: number): Promise<AssignmentAnswers> {
+  let cached = assignmentAnswersCache.get(assignmentId)
   if (!cached) {
-    cached = api<GameAnswers>(`/api/admin/games/${gameInstanceId}/answers`)
-    gameAnswersCache.set(gameInstanceId, cached)
+    cached = api<AssignmentAnswers>(`/api/admin/assignments/${assignmentId}/answers`)
+    assignmentAnswersCache.set(assignmentId, cached)
   }
   return cached
 }
@@ -26,7 +26,7 @@ function AttemptAnswersView({ attempt }: { attempt: AttemptAdmin }) {
 
   useEffect(() => {
     let cancelled = false
-    fetchGameAnswers(attempt.gameInstanceId)
+    fetchAssignmentAnswers(attempt.assignmentId)
       .then((data) => {
         if (cancelled) return
         const mine = data.attempts.find((a) => a.attemptId === attempt.id)
@@ -38,7 +38,7 @@ function AttemptAnswersView({ attempt }: { attempt: AttemptAdmin }) {
     return () => {
       cancelled = true
     }
-  }, [attempt.gameInstanceId, attempt.id])
+  }, [attempt.assignmentId, attempt.id])
 
   if (loadFailed) {
     return attempt.answersJson ? (
@@ -55,7 +55,7 @@ function AttemptAnswersView({ attempt }: { attempt: AttemptAdmin }) {
       {answers.map((b) => (
         <div key={b.questionId} className="space-y-1.5 rounded-xl border border-white/10 p-3">
           <p className="text-sm font-semibold">{b.order}. {b.prompt}</p>
-          <AnswerView gameType={attempt.gameType} breakdown={b} />
+          <AnswerView assignmentType={attempt.assignmentType} breakdown={b} />
         </div>
       ))}
     </div>
@@ -87,7 +87,7 @@ function ReviewCard({ attempt, onDone }: { attempt: AttemptAdmin; onDone: () => 
     <Card className="space-y-3">
       <div className="flex items-start justify-between gap-2">
         <div>
-          <h2 className="font-bold">{attempt.gameTitle}</h2>
+          <h2 className="font-bold">{attempt.assignmentTitle}</h2>
           <p className="text-sm text-slate-600">
             {attempt.studentDisplayName}
             {attempt.studentFirstName && (

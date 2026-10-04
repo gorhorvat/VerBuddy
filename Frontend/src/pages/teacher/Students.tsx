@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import {
   api,
   type BulkActivateResult,
@@ -29,8 +29,12 @@ export default function Students() {
     firstName: '', lastName: '', email: '', displayName: '', categoryIds: [] as number[],
   })
   const [busyIds, setBusyIds] = useState<Set<string>>(new Set())
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [showImport, setShowImport] = useState(false)
+  const [importFile, setImportFile] = useState<File | null>(null)
   const [importCategoryId, setImportCategoryId] = useState('')
+  const [importBusy, setImportBusy] = useState(false)
+  const [importError, setImportError] = useState<string | null>(null)
+  const [importResult, setImportResult] = useState<ImportStudentsResult | null>(null)
 
   const [form, setForm] = useState({
     username: '', firstName: '', lastName: '', email: '', displayName: '', categoryIds: [] as number[],
@@ -134,15 +138,28 @@ export default function Students() {
     }, 'Student created. Use "Activate" to email their first-login credentials.')
   }
 
+  const closeImport = () => {
+    setShowImport(false)
+    setImportFile(null)
+    setImportCategoryId('')
+    setImportError(null)
+    setImportResult(null)
+  }
+
   /** CSV: optional header, columns username,firstName,lastName,email[,displayName]. */
-  const importCsv = async (file: File) => {
-    const text = await file.text()
+  const importCsv = async (e: FormEvent) => {
+    e.preventDefault()
+    if (!importFile) return
+    setImportError(null)
+    setImportResult(null)
+
+    const text = await importFile.text()
     const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean)
+    if (/username/i.test(lines[0] ?? '')) lines.shift() // Drop the header row.
     if (lines.length === 0) {
-      setError('The file is empty.')
+      setImportError('The file has no student rows.')
       return
     }
-    if (/username/i.test(lines[0])) lines.shift() // Drop the header row.
 
     const rows: ImportStudentRow[] = lines.map((line) => {
       const [username, firstName, lastName, email, displayName] = line.split(',').map((c) => c.trim())
@@ -155,16 +172,19 @@ export default function Students() {
       }
     })
 
-    run(async () => {
+    setImportBusy(true)
+    try {
       const result = await api<ImportStudentsResult>('/api/admin/students/import', {
         method: 'POST',
         body: { rows, categoryId: importCategoryId ? Number(importCategoryId) : null },
       })
-      setNotice(
-        `Imported ${result.created.length} student${result.created.length === 1 ? '' : 's'}.` +
-          (result.errors.length ? ` Skipped: ${result.errors.join(' | ')}` : ''),
-      )
-    })
+      setImportResult(result)
+      await load()
+    } catch (err) {
+      setImportError(err instanceof Error ? err.message : 'The import failed.')
+    } finally {
+      setImportBusy(false)
+    }
   }
 
   const toggleSelected = (id: string) =>
@@ -195,33 +215,66 @@ export default function Students() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">👥 Students</h1>
         <div className="flex gap-3">
-          <Button variant="secondary" onClick={() => fileInputRef.current?.click()}>⬆ Import CSV</Button>
+          <Button variant="secondary" onClick={() => setShowImport(true)}>⬆ Import CSV</Button>
           <Button onClick={() => setShowCreate(true)}>+ Add student</Button>
         </div>
-      </div>
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept=".csv,text/csv,text/plain"
-        className="hidden"
-        onChange={(e) => {
-          const file = e.target.files?.[0]
-          if (file) importCsv(file)
-          e.target.value = ''
-        }}
-      />
-      <div className="flex items-center gap-2 text-xs text-slate-500">
-        <span>CSV columns: username, first name, last name, email, nickname (optional). Import into:</span>
-        <select className="rounded-lg border border-slate-300 px-2 py-1" value={importCategoryId} onChange={(e) => setImportCategoryId(e.target.value)}>
-          <option value="">No class</option>
-          {categories.map((c) => (
-            <option key={c.id} value={c.id}>{c.name}</option>
-          ))}
-        </select>
       </div>
 
       <ErrorText message={error} />
       {notice && <p className="rounded-lg bg-emerald-50 px-4 py-3 text-base text-emerald-800">{notice}</p>}
+
+      <Modal open={showImport} title="Import students from CSV" onClose={closeImport}>
+        {importResult ? (
+          <div className="space-y-4">
+            <p className="rounded-lg bg-emerald-50 px-4 py-3 text-base text-emerald-800">
+              Imported {importResult.created.length} student{importResult.created.length === 1 ? '' : 's'}.
+              Use "Activate" to email their first-login credentials.
+            </p>
+            {importResult.errors.length > 0 && (
+              <div>
+                <span className="mb-1.5 block text-sm font-semibold text-slate-500">
+                  Skipped {importResult.errors.length} row{importResult.errors.length === 1 ? '' : 's'}
+                </span>
+                <ul className="max-h-48 list-disc space-y-1 overflow-y-auto pl-5 text-sm text-red-600">
+                  {importResult.errors.map((err, i) => <li key={i}>{err}</li>)}
+                </ul>
+              </div>
+            )}
+            <Button className="w-full" onClick={closeImport}>Done</Button>
+          </div>
+        ) : (
+          <form onSubmit={importCsv} className="space-y-4">
+            <Field label="CSV file *">
+              <input
+                className={inputClass}
+                type="file"
+                accept=".csv,text/csv,text/plain"
+                required
+                onChange={(e) => setImportFile(e.target.files?.[0] ?? null)}
+              />
+            </Field>
+            <p className="text-sm text-slate-500">
+              One student per line: username, first name, last name, email, nickname (optional).
+              A header row is detected and skipped.
+            </p>
+            <Field label="Category">
+              <select className={inputClass} value={importCategoryId} onChange={(e) => setImportCategoryId(e.target.value)}>
+                <option value="">No category</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </Field>
+            <ErrorText message={importError} />
+            <div className="flex gap-3">
+              <Button type="button" variant="secondary" className="flex-1" onClick={closeImport}>Cancel</Button>
+              <Button type="submit" className="flex-1" disabled={!importFile || importBusy}>
+                {importBusy ? 'Importing…' : 'Import'}
+              </Button>
+            </div>
+          </form>
+        )}
+      </Modal>
 
       <Modal open={showCreate} title="Add student" onClose={() => setShowCreate(false)}>
         <form onSubmit={create} className="space-y-4">
@@ -242,9 +295,9 @@ export default function Students() {
               <input className={inputClass} placeholder="Empty = auto-generate" value={form.displayName} onChange={set('displayName')} maxLength={32} />
             </Field>
             <div>
-              <span className="mb-1.5 block text-sm font-semibold text-slate-500">Classes</span>
+              <span className="mb-1.5 block text-sm font-semibold text-slate-500">Categories</span>
               <div className="max-h-40 space-y-1 overflow-y-auto rounded-lg border border-white/20 bg-white/[0.04] p-2">
-                {categories.length === 0 && <p className="px-2 py-1 text-xs text-slate-500">No classes yet.</p>}
+                {categories.length === 0 && <p className="px-2 py-1 text-xs text-slate-500">No categories yet.</p>}
                 {categories.map((c) => (
                   <label key={c.id} className="flex cursor-pointer items-center gap-2 px-2 py-1 text-sm">
                     <input
@@ -262,7 +315,7 @@ export default function Students() {
           <p className="text-sm text-slate-500">
             No password needed — activating the account emails the student a temporary
             password, which they must replace on first login. Real name and email stay
-            private to you; classmates only ever see the nickname.
+            private to you; other students only ever see the nickname.
           </p>
           <Button type="submit" className="w-full">Create account</Button>
         </form>
@@ -385,9 +438,9 @@ export default function Students() {
               <input className={inputClass} value={editForm.displayName} onChange={setEdit('displayName')} maxLength={32} />
             </Field>
             <div>
-              <span className="mb-1.5 block text-sm font-semibold text-slate-500">Classes</span>
+              <span className="mb-1.5 block text-sm font-semibold text-slate-500">Categories</span>
               <div className="max-h-40 space-y-1 overflow-y-auto rounded-lg border border-white/20 bg-white/[0.04] p-2">
-                {categories.length === 0 && <p className="px-2 py-1 text-xs text-slate-500">No classes yet.</p>}
+                {categories.length === 0 && <p className="px-2 py-1 text-xs text-slate-500">No categories yet.</p>}
                 {categories.map((c) => (
                   <label key={c.id} className="flex cursor-pointer items-center gap-2 px-2 py-1 text-sm">
                     <input

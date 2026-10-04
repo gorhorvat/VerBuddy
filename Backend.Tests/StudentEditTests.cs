@@ -11,7 +11,7 @@ public class StudentEditTests(ApiFactory factory)
     private static async Task<CategoryDto> CreateCategoryAsync(HttpClient admin)
     {
         var response = await admin.PostAsJsonAsync("/api/admin/categories",
-            new { name = Unique("Class") }, Json);
+            new { name = Unique("Category") }, Json);
         response.EnsureSuccessStatusCode();
         return (await response.Content.ReadFromJsonAsync<CategoryDto>(Json))!;
     }

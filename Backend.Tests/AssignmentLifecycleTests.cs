@@ -6,17 +6,17 @@ using static Backend.Tests.TestHelpers;
 namespace Backend.Tests;
 
 [Collection("Api")]
-public class GameLifecycleTests(ApiFactory factory)
+public class AssignmentLifecycleTests(ApiFactory factory)
 {
     [Fact]
     public async Task Activate_WithoutQuestions_Returns409()
     {
         using var teacher = await factory.TeacherClientAsync();
-        var create = await teacher.PostAsJsonAsync("/api/admin/games",
-            new { title = Unique("Empty"), gameType = "SingleChoice" }, Json);
-        var game = (await create.Content.ReadFromJsonAsync<GameDetailDto>(Json))!;
+        var create = await teacher.PostAsJsonAsync("/api/admin/assignments",
+            new { title = Unique("Empty"), assignmentType = "SingleChoice" }, Json);
+        var assignment = (await create.Content.ReadFromJsonAsync<AssignmentDetailDto>(Json))!;
 
-        var response = await teacher.PostAsJsonAsync($"/api/admin/games/{game.Id}/state", new { state = "Active" }, Json);
+        var response = await teacher.PostAsJsonAsync($"/api/admin/assignments/{assignment.Id}/state", new { state = "Active" }, Json);
 
         Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
     }
@@ -25,9 +25,9 @@ public class GameLifecycleTests(ApiFactory factory)
     public async Task InvalidQuestionContent_Returns400()
     {
         using var teacher = await factory.TeacherClientAsync();
-        var game = await teacher.CreateSingleChoiceGameAsync(activate: false);
+        var assignment = await teacher.CreateSingleChoiceAssignmentAsync(activate: false);
 
-        var response = await teacher.PostAsJsonAsync($"/api/admin/games/{game.Id}/questions", new
+        var response = await teacher.PostAsJsonAsync($"/api/admin/assignments/{assignment.Id}/questions", new
         {
             prompt = "Broken",
             order = 2,
@@ -42,8 +42,8 @@ public class GameLifecycleTests(ApiFactory factory)
     public async Task Questions_FrozenWhileActive_EditableWhenClosed()
     {
         using var teacher = await factory.TeacherClientAsync();
-        var game = await teacher.CreateSingleChoiceGameAsync(); // Active
-        var question = game.Questions.Single();
+        var assignment = await teacher.CreateSingleChoiceAssignmentAsync(); // Active
+        var question = assignment.Questions.Single();
         var edit = new
         {
             prompt = "Pick B. (revised)",
@@ -53,12 +53,12 @@ public class GameLifecycleTests(ApiFactory factory)
         };
 
         var whileActive = await teacher.PutAsJsonAsync(
-            $"/api/admin/games/{game.Id}/questions/{question.Id}", edit, Json);
+            $"/api/admin/assignments/{assignment.Id}/questions/{question.Id}", edit, Json);
         Assert.Equal(HttpStatusCode.Conflict, whileActive.StatusCode);
 
-        await teacher.PostAsJsonAsync($"/api/admin/games/{game.Id}/state", new { state = "Closed" }, Json);
+        await teacher.PostAsJsonAsync($"/api/admin/assignments/{assignment.Id}/state", new { state = "Closed" }, Json);
         var whenClosed = await teacher.PutAsJsonAsync(
-            $"/api/admin/games/{game.Id}/questions/{question.Id}", edit, Json);
+            $"/api/admin/assignments/{assignment.Id}/questions/{question.Id}", edit, Json);
         Assert.Equal(HttpStatusCode.OK, whenClosed.StatusCode);
 
         var updated = (await whenClosed.Content.ReadFromJsonAsync<QuestionAdminDto>(Json))!;
@@ -69,43 +69,43 @@ public class GameLifecycleTests(ApiFactory factory)
     public async Task TimerAndGradingMode_FrozenOnlyWhileActive()
     {
         using var teacher = await factory.TeacherClientAsync();
-        var game = await teacher.CreateSingleChoiceGameAsync(timeLimitSeconds: 60); // Active
+        var assignment = await teacher.CreateSingleChoiceAssignmentAsync(timeLimitSeconds: 60); // Active
 
-        var whileActive = await teacher.PutAsJsonAsync($"/api/admin/games/{game.Id}", new
+        var whileActive = await teacher.PutAsJsonAsync($"/api/admin/assignments/{assignment.Id}", new
         {
-            title = game.Title,
+            title = assignment.Title,
             description = (string?)null,
             timeLimitSeconds = 120,
-            xpReward = game.XpReward,
-            requireFeedback = game.RequireFeedback,
+            xpReward = assignment.XpReward,
+            requireFeedback = assignment.RequireFeedback,
             categoryId = (int?)null
         }, Json);
         Assert.Equal(HttpStatusCode.Conflict, whileActive.StatusCode);
 
-        await teacher.PostAsJsonAsync($"/api/admin/games/{game.Id}/state", new { state = "Closed" }, Json);
-        var whenClosed = await teacher.PutAsJsonAsync($"/api/admin/games/{game.Id}", new
+        await teacher.PostAsJsonAsync($"/api/admin/assignments/{assignment.Id}/state", new { state = "Closed" }, Json);
+        var whenClosed = await teacher.PutAsJsonAsync($"/api/admin/assignments/{assignment.Id}", new
         {
-            title = game.Title,
+            title = assignment.Title,
             description = (string?)null,
             timeLimitSeconds = 120,
-            xpReward = game.XpReward,
-            requireFeedback = game.RequireFeedback,
+            xpReward = assignment.XpReward,
+            requireFeedback = assignment.RequireFeedback,
             categoryId = (int?)null
         }, Json);
         Assert.Equal(HttpStatusCode.OK, whenClosed.StatusCode);
     }
 
     [Fact]
-    public async Task DeleteGame_WithAttempts_Returns409()
+    public async Task DeleteAssignment_WithAttempts_Returns409()
     {
         using var teacher = await factory.TeacherClientAsync();
-        var game = await teacher.CreateSingleChoiceGameAsync();
+        var assignment = await teacher.CreateSingleChoiceAssignmentAsync();
         var student = await factory.CreateActivatedStudentAsync(teacher);
         using var studentClient = await factory.StudentClientAsync(student);
-        var start = await studentClient.StartAsync(game.Id);
-        await studentClient.SubmitAsync(game.Id, start.Questions[0].Id, new { selectedIndex = 1 });
+        var start = await studentClient.StartAsync(assignment.Id);
+        await studentClient.SubmitAsync(assignment.Id, start.Questions[0].Id, new { selectedIndex = 1 });
 
-        var response = await teacher.DeleteAsync($"/api/admin/games/{game.Id}");
+        var response = await teacher.DeleteAsync($"/api/admin/assignments/{assignment.Id}");
 
         Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
     }
@@ -114,7 +114,7 @@ public class GameLifecycleTests(ApiFactory factory)
     public async Task Categories_CrudAndAssignment()
     {
         using var teacher = await factory.TeacherClientAsync();
-        var name = Unique("Class");
+        var name = Unique("Category");
 
         var create = await teacher.PostAsJsonAsync("/api/admin/categories", new { name }, Json);
         Assert.Equal(HttpStatusCode.Created, create.StatusCode);
@@ -124,18 +124,18 @@ public class GameLifecycleTests(ApiFactory factory)
         var duplicate = await teacher.PostAsJsonAsync("/api/admin/categories", new { name }, Json);
         Assert.Equal(HttpStatusCode.Conflict, duplicate.StatusCode);
 
-        // Assign an ACTIVE game — category moves are allowed in any state.
-        var game = await teacher.CreateSingleChoiceGameAsync();
+        // Assign an ACTIVE assignment — category moves are allowed in any state.
+        var assignment = await teacher.CreateSingleChoiceAssignmentAsync();
         var assign = await teacher.PostAsJsonAsync(
-            $"/api/admin/games/{game.Id}/category", new { categoryId = category.Id }, Json);
+            $"/api/admin/assignments/{assignment.Id}/category", new { categoryId = category.Id }, Json);
         Assert.Equal(HttpStatusCode.OK, assign.StatusCode);
-        var assigned = (await assign.Content.ReadFromJsonAsync<GameDetailDto>(Json))!;
+        var assigned = (await assign.Content.ReadFromJsonAsync<AssignmentDetailDto>(Json))!;
         Assert.Equal(name, assigned.CategoryName);
 
-        // Deleting the category files the game back under General (null).
+        // Deleting the category files the assignment back under General (null).
         var delete = await teacher.DeleteAsync($"/api/admin/categories/{category.Id}");
         Assert.Equal(HttpStatusCode.NoContent, delete.StatusCode);
-        var after = (await teacher.GetFromJsonAsync<GameDetailDto>($"/api/admin/games/{game.Id}", Json))!;
+        var after = (await teacher.GetFromJsonAsync<AssignmentDetailDto>($"/api/admin/assignments/{assignment.Id}", Json))!;
         Assert.Null(after.CategoryId);
     }
 
@@ -143,14 +143,14 @@ public class GameLifecycleTests(ApiFactory factory)
     public async Task ActiveToDraft_WithAttempts_Returns409()
     {
         using var teacher = await factory.TeacherClientAsync();
-        var game = await teacher.CreateSingleChoiceGameAsync();
+        var assignment = await teacher.CreateSingleChoiceAssignmentAsync();
         var student = await factory.CreateActivatedStudentAsync(teacher);
         using var studentClient = await factory.StudentClientAsync(student);
-        var start = await studentClient.StartAsync(game.Id);
-        await studentClient.SubmitAsync(game.Id, start.Questions[0].Id, new { selectedIndex = 1 });
+        var start = await studentClient.StartAsync(assignment.Id);
+        await studentClient.SubmitAsync(assignment.Id, start.Questions[0].Id, new { selectedIndex = 1 });
 
         var response = await teacher.PostAsJsonAsync(
-            $"/api/admin/games/{game.Id}/state", new { state = "Draft" }, Json);
+            $"/api/admin/assignments/{assignment.Id}/state", new { state = "Draft" }, Json);
 
         Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
     }

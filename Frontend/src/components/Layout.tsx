@@ -11,7 +11,7 @@ export default function Layout() {
   const { user, isAdmin, isSuperAdmin, logout, refreshMe } = useAuth()
 
   // Keep the header XP/level display fresh — the login snapshot goes stale
-  // as soon as the student finishes a game.
+  // as soon as the student finishes an assignment.
   useEffect(() => {
     refreshMe().catch(() => {
       /* header simply keeps the cached values */
@@ -21,7 +21,7 @@ export default function Layout() {
 
   const tabs = isAdmin
     ? [
-        { to: '/teacher/games', label: 'Games', icon: '🎲' },
+        { to: '/teacher/assignments', label: 'Assignments', icon: '🎲' },
         { to: '/teacher/reviews', label: 'Reviews', icon: '📝' },
         { to: '/teacher/students', label: 'Students', icon: '👥' },
         ...(isSuperAdmin ? [{ to: '/superadmin/admins', label: 'Admins', icon: '🛡️' }] : []),
@@ -29,7 +29,7 @@ export default function Layout() {
         { to: '/leaderboard', label: 'Ranks', icon: '🏆' },
       ]
     : [
-        { to: '/games', label: 'Games', icon: '🎲' },
+        { to: '/assignments', label: 'Assignments', icon: '🎲' },
         { to: '/rewards', label: 'Rewards', icon: '🎁' },
         { to: '/leaderboard', label: 'Ranks', icon: '🏆' },
       ]

@@ -6,31 +6,31 @@
 
 **Live app: [verbuddy.vercel.app](https://verbuddy.vercel.app)**
 
-VerBuddy is a gamified English-learning platform for schools. Teachers build
-word games — single/multiple choice, fill-in-the-blanks, word matching — and
-file them into classes. Students play them, earn XP, level up, climb the
+VerBuddy is a gamified learning platform for schools, usable for any subject.
+Teachers build assignments — single/multiple choice, fill-in-the-blanks,
+matching — and file them into categories. Students complete them, earn XP, level up, climb the
 leaderboards, and redeem real-world rewards their teacher defines.
 
 ## Features
 
 **For students**
-- Play vocabulary games with optional time limits; instant scoring or manual
+- Complete assignments with optional time limits; instant scoring or manual
   teacher review
 - XP and leveling (level 1 at 1,000 XP, every next level costs double), with
   a level badge and progress bar in the header and a level-up celebration
-- Per-class and global leaderboards under pseudonymous nicknames
+- Per-category and global leaderboards under pseudonymous nicknames
 - Rewards catalog: see everything, unlock by level, apply — teacher approves
   or denies
 
 **For teachers (admins)**
-- Game builder with per-type question editing, draft/active/closed lifecycle,
+- Assignment builder with per-type question editing, draft/active/closed lifecycle,
   duplicate-as-template
-- Class (category) management; students can belong to several classes and see
-  exactly the games of their classes
+- Category management; students can belong to several categories and see
+  exactly the assignments of their categories
 - Student roster with provisioning lifecycle: create without password →
   activation email with temporary credentials → forced password change on
-  first login; CSV bulk import; bulk activation
-- Manual grading queue for feedback-required games with score overrides
+  first login; CSV bulk import into a category; bulk activation
+- Manual grading queue for feedback-required assignments with score overrides
 - Rewards management and approval/revocation of student reward requests
 - Teachers see only the students and rewards they created
 

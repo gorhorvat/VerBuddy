@@ -1,19 +1,19 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { api, type GameDetail, type GameType, type QuestionAdmin } from '../../api'
-import { Badge, Button, Card, ErrorText, Spinner, gameTypeLabels, inputClass } from '../../components/ui'
+import { api, type AssignmentDetail, type AssignmentType, type QuestionAdmin } from '../../api'
+import { Badge, Button, Card, ErrorText, Spinner, assignmentTypeLabels, inputClass } from '../../components/ui'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import QuestionContent from '../../components/QuestionContent'
 
 /**
  * Question builder/editor. Teachers author content in friendly text formats
- * converted into the per-game-type JSON the backend validates. Editing is
- * available in Draft and Closed states — only Active games are frozen.
+ * converted into the per-assignment-type JSON the backend validates. Editing is
+ * available in Draft and Closed states — only Active assignments are frozen.
  */
-export default function GameEditor() {
+export default function AssignmentEditor() {
   const { id } = useParams() as { id: string }
   const navigate = useNavigate()
-  const [game, setGame] = useState<GameDetail | null>(null)
+  const [assignment, setAssignment] = useState<AssignmentDetail | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<QuestionAdmin | null>(null)
 
@@ -27,7 +27,7 @@ export default function GameEditor() {
   const [reverting, setReverting] = useState(false)
   const [saving, setSaving] = useState(false)
 
-  // Game meta (title/description) is edited locally and only persisted via
+  // Assignment meta (title/description) is edited locally and only persisted via
   // PUT when "Save" is pressed — so "Cancel" restores it for free. Initialised
   // once from the first load; reloads after question saves must not clobber
   // in-progress edits.
@@ -47,9 +47,9 @@ export default function GameEditor() {
   const [pairsText, setPairsText] = useState('')
 
   const load = () =>
-    api<GameDetail>(`/api/admin/games/${id}`)
+    api<AssignmentDetail>(`/api/admin/assignments/${id}`)
       .then((g) => {
-        setGame(g)
+        setAssignment(g)
         setSnapshot((prev) => prev ?? g.questions.map((q) => ({ ...q })))
         if (!metaInitRef.current) {
           metaInitRef.current = true
@@ -81,13 +81,13 @@ export default function GameEditor() {
 
   /** Loads an existing question's JSON back into the friendly form fields. */
   const startEditing = (q: QuestionAdmin) => {
-    if (!game) return
+    if (!assignment) return
     setEditingId(q.id)
     setPrompt(q.prompt)
     setPoints(String(q.points))
     setOrder(q.order)
     const content = JSON.parse(q.jsonContent)
-    switch (game.gameType) {
+    switch (assignment.assignmentType) {
       case 'SingleChoice':
         setChoicesText((content.choices as string[]).join('\n'))
         setCorrectIndexes(new Set([content.correctIndex as number]))
@@ -102,7 +102,7 @@ export default function GameEditor() {
           (content.blanks as { acceptedAnswers: string[] }[]).map((b) => b.acceptedAnswers.join(', ')),
         )
         break
-      case 'WordMatching':
+      case 'Matching':
         setPairsText(
           (content.pairs as { key: string; value: string }[]).map((p) => `${p.key} = ${p.value}`).join('\n'),
         )
@@ -111,7 +111,7 @@ export default function GameEditor() {
     window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })
   }
 
-  const buildJsonContent = (type: GameType): string => {
+  const buildJsonContent = (type: AssignmentType): string => {
     switch (type) {
       case 'SingleChoice':
         return JSON.stringify({ choices, correctIndex: [...correctIndexes][0] ?? -1 })
@@ -125,7 +125,7 @@ export default function GameEditor() {
             caseSensitive: false,
           })),
         })
-      case 'WordMatching':
+      case 'Matching':
         return JSON.stringify({
           instructions: prompt || 'Match the pairs.',
           shuffleRightColumn: true,
@@ -140,19 +140,19 @@ export default function GameEditor() {
 
   const saveQuestion = async (e: FormEvent) => {
     e.preventDefault()
-    if (!game) return
+    if (!assignment) return
     setError(null)
     const body = {
       prompt,
-      order: order ?? game.questions.length + 1,
+      order: order ?? assignment.questions.length + 1,
       points: Number(points),
-      jsonContent: buildJsonContent(game.gameType),
+      jsonContent: buildJsonContent(assignment.assignmentType),
     }
     try {
       if (editingId !== null) {
-        await api(`/api/admin/games/${id}/questions/${editingId}`, { method: 'PUT', body })
+        await api(`/api/admin/assignments/${id}/questions/${editingId}`, { method: 'PUT', body })
       } else {
-        await api(`/api/admin/games/${id}/questions`, { method: 'POST', body })
+        await api(`/api/admin/assignments/${id}/questions`, { method: 'POST', body })
       }
       setSessionChanged(true)
       resetForm()
@@ -165,7 +165,7 @@ export default function GameEditor() {
   const deleteQuestion = async (questionId: number) => {
     setError(null)
     try {
-      await api(`/api/admin/games/${id}/questions/${questionId}`, { method: 'DELETE' })
+      await api(`/api/admin/assignments/${id}/questions/${questionId}`, { method: 'DELETE' })
       setSessionChanged(true)
       if (editingId === questionId) resetForm()
       await load()
@@ -176,20 +176,20 @@ export default function GameEditor() {
 
   /**
    * Undoes every add/edit/delete made during this visit using the existing
-   * question CRUD endpoints, restoring the game to the state captured in
+   * question CRUD endpoints, restoring the assignment to the state captured in
    * `snapshot`. Recreated questions get new ids — that's an accepted
    * trade-off since there's no backend "restore" endpoint.
    */
   const revertToSnapshot = async () => {
-    if (!game || !snapshot) return
-    const current = game.questions
+    if (!assignment || !snapshot) return
+    const current = assignment.questions
     const currentById = new Map(current.map((q) => [q.id, q]))
     const snapshotById = new Map(snapshot.map((q) => [q.id, q]))
 
     // Remove questions added this session.
     for (const q of current) {
       if (!snapshotById.has(q.id)) {
-        await api(`/api/admin/games/${id}/questions/${q.id}`, { method: 'DELETE' })
+        await api(`/api/admin/assignments/${id}/questions/${q.id}`, { method: 'DELETE' })
       }
     }
 
@@ -198,25 +198,25 @@ export default function GameEditor() {
       const cur = currentById.get(orig.id)
       const body = { prompt: orig.prompt, order: orig.order, points: orig.points, jsonContent: orig.jsonContent }
       if (!cur) {
-        await api(`/api/admin/games/${id}/questions`, { method: 'POST', body })
+        await api(`/api/admin/assignments/${id}/questions`, { method: 'POST', body })
       } else if (
         cur.prompt !== orig.prompt ||
         cur.points !== orig.points ||
         cur.order !== orig.order ||
         cur.jsonContent !== orig.jsonContent
       ) {
-        await api(`/api/admin/games/${id}/questions/${orig.id}`, { method: 'PUT', body })
+        await api(`/api/admin/assignments/${id}/questions/${orig.id}`, { method: 'PUT', body })
       }
     }
   }
 
-  const metaDirty = (g: GameDetail) => title !== g.title || description !== (g.description ?? '')
+  const metaDirty = (g: AssignmentDetail) => title !== g.title || description !== (g.description ?? '')
 
   const handleSave = async () => {
     // Questions are already persisted as each add/edit/delete is submitted;
-    // only the game meta (title/description) still needs flushing via PUT.
-    if (!game) return
-    if (metaDirty(game)) {
+    // only the assignment meta (title/description) still needs flushing via PUT.
+    if (!assignment) return
+    if (metaDirty(assignment)) {
       if (!title.trim()) {
         setError('Title is required.')
         return
@@ -224,31 +224,31 @@ export default function GameEditor() {
       setSaving(true)
       setError(null)
       try {
-        await api(`/api/admin/games/${id}`, {
+        await api(`/api/admin/assignments/${id}`, {
           method: 'PUT',
           body: {
             title: title.trim(),
             description: description.trim() || null,
-            timeLimitSeconds: game.timeLimitSeconds,
-            xpReward: game.xpReward,
-            requireFeedback: game.requireFeedback,
-            categoryId: game.categoryId,
+            timeLimitSeconds: assignment.timeLimitSeconds,
+            xpReward: assignment.xpReward,
+            requireFeedback: assignment.requireFeedback,
+            categoryId: assignment.categoryId,
           },
         })
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Saving the game failed.')
+        setError(err instanceof Error ? err.message : 'Saving the assignment failed.')
         setSaving(false)
         return
       }
     }
-    navigate('/teacher/games')
+    navigate('/teacher/assignments')
   }
 
   const handleCancel = () => {
-    if (sessionChanged || (game && metaDirty(game))) {
+    if (sessionChanged || (assignment && metaDirty(assignment))) {
       setShowDiscardConfirm(true)
     } else {
-      navigate('/teacher/games')
+      navigate('/teacher/assignments')
     }
   }
 
@@ -258,7 +258,7 @@ export default function GameEditor() {
     setError(null)
     try {
       await revertToSnapshot()
-      navigate('/teacher/games')
+      navigate('/teacher/assignments')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Reverting changes failed. Some edits may remain.')
       await load()
@@ -277,15 +277,15 @@ export default function GameEditor() {
     })
   }
 
-  if (error && !game) return <ErrorText message={error} />
-  if (!game) return <Spinner />
+  if (error && !assignment) return <ErrorText message={error} />
+  if (!assignment) return <Spinner />
 
-  const editable = game.state !== 'Active'
-  const isChoice = game.gameType === 'SingleChoice' || game.gameType === 'MultipleChoice'
+  const editable = assignment.state !== 'Active'
+  const isChoice = assignment.assignmentType === 'SingleChoice' || assignment.assignmentType === 'MultipleChoice'
 
   return (
     <div className="space-y-3">
-      <Link to="/teacher/games" className="text-sm font-semibold text-indigo-600">← All games</Link>
+      <Link to="/teacher/assignments" className="text-sm font-semibold text-indigo-600">← All assignments</Link>
       {editable ? (
         <div className="space-y-2">
           <div className="flex items-center justify-between gap-2">
@@ -293,49 +293,49 @@ export default function GameEditor() {
               className={`${inputClass} font-display !text-2xl font-bold`}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Game title"
-              aria-label="Game title"
+              placeholder="Assignment title"
+              aria-label="Assignment title"
               required
               maxLength={200}
             />
-            <Badge value={game.state} />
+            <Badge value={assignment.state} />
           </div>
           <input
             className={inputClass}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Description (optional)"
-            aria-label="Game description"
+            aria-label="Assignment description"
             maxLength={1000}
           />
         </div>
       ) : (
         <div className="flex items-center justify-between gap-2">
-          <h1 className="text-2xl font-bold">{game.title}</h1>
-          <Badge value={game.state} />
+          <h1 className="text-2xl font-bold">{assignment.title}</h1>
+          <Badge value={assignment.state} />
         </div>
       )}
       <p className="text-xs text-slate-500">
-        {gameTypeLabels[game.gameType]} · 📁 {game.categoryName ?? 'General'}
-        {game.attemptCount > 0 && ` · ${game.attemptCount} recorded attempt${game.attemptCount === 1 ? '' : 's'}`}
+        {assignmentTypeLabels[assignment.assignmentType]} · 📁 {assignment.categoryName ?? 'General'}
+        {assignment.attemptCount > 0 && ` · ${assignment.attemptCount} recorded attempt${assignment.attemptCount === 1 ? '' : 's'}`}
       </p>
       <ErrorText message={error} />
 
-      {game.attemptCount > 0 && editable && (
+      {assignment.attemptCount > 0 && editable && (
         <p className="rounded-xl bg-amber-50 px-4 py-3 text-xs text-amber-800">
-          Students already attempted this game. Content changes won't re-grade
+          Students already attempted this assignment. Content changes won't re-grade
           existing attempts — use the Answers view to adjust points instead.
         </p>
       )}
 
-      {game.questions.map((q) => (
+      {assignment.questions.map((q) => (
         <Card key={q.id} className={`flex items-start justify-between gap-3 !py-3 ${editingId === q.id ? 'ring-2 ring-indigo-400' : ''}`}>
           <div className="min-w-0 flex-1 space-y-2">
             <div className="flex items-start justify-between gap-2">
               <p className="font-semibold">{q.order}. {q.prompt}</p>
               <span className="shrink-0 text-xs text-slate-400">{q.points} pt{q.points === 1 ? '' : 's'}</span>
             </div>
-            <QuestionContent gameType={game.gameType} jsonContent={q.jsonContent} />
+            <QuestionContent assignmentType={assignment.assignmentType} jsonContent={q.jsonContent} />
           </div>
           {editable && (
             <div className="flex shrink-0 gap-2">
@@ -348,7 +348,7 @@ export default function GameEditor() {
 
       {!editable && (
         <p className="rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-500">
-          This game is Active. Close it to edit questions or settings.
+          This assignment is Active. Close it to edit questions or settings.
         </p>
       )}
 
@@ -371,15 +371,15 @@ export default function GameEditor() {
                 {choices.length > 0 && (
                   <div className="space-y-1">
                     <p className="text-xs font-semibold text-slate-500">
-                      Tick the correct answer{game.gameType === 'MultipleChoice' ? 's' : ''}:
+                      Tick the correct answer{assignment.assignmentType === 'MultipleChoice' ? 's' : ''}:
                     </p>
                     {choices.map((c, i) => (
                       <label key={i} className="flex items-center gap-2 text-sm">
                         <input
-                          type={game.gameType === 'SingleChoice' ? 'radio' : 'checkbox'}
+                          type={assignment.assignmentType === 'SingleChoice' ? 'radio' : 'checkbox'}
                           name="correct"
                           checked={correctIndexes.has(i)}
-                          onChange={() => toggleCorrect(i, game.gameType === 'SingleChoice')}
+                          onChange={() => toggleCorrect(i, assignment.assignmentType === 'SingleChoice')}
                         />
                         {c}
                       </label>
@@ -389,7 +389,7 @@ export default function GameEditor() {
               </>
             )}
 
-            {game.gameType === 'FillInTheBlanks' && (
+            {assignment.assignmentType === 'FillInTheBlanks' && (
               <>
                 <textarea className={inputClass} rows={3} placeholder={'Sentence with ___ for each blank, e.g.\nShe ___ to school yesterday.'} value={template} onChange={(e) => setTemplate(e.target.value)} required />
                 {Array.from({ length: blankCount }, (_, i) => (
@@ -411,7 +411,7 @@ export default function GameEditor() {
               </>
             )}
 
-            {game.gameType === 'WordMatching' && (
+            {assignment.assignmentType === 'Matching' && (
               <textarea className={inputClass} rows={5} placeholder={'One pair per line:\nword = definition\ngenerous = willing to give more than expected'} value={pairsText} onChange={(e) => setPairsText(e.target.value)} required />
             )}
 

@@ -1,8 +1,8 @@
 namespace Backend.Models;
 
 /// <summary>
-/// One student's single attempt at a game instance. A unique index on
-/// (GameInstanceId, StudentId) enforces the one-attempt lock at the database level.
+/// One student's single attempt at an assignment instance. A unique index on
+/// (AssignmentId, StudentId) enforces the one-attempt lock at the database level.
 /// </summary>
 public class StudentAttempt
 {
@@ -19,7 +19,7 @@ public class StudentAttempt
     /// <summary>XP granted when the attempt was finalized (0 until then).</summary>
     public int EarnedXp { get; set; }
 
-    /// <summary>The student's raw answers, serialized per game type (nvarchar(max)).</summary>
+    /// <summary>The student's raw answers, serialized per assignment type (nvarchar(max)).</summary>
     public string? AnswersJson { get; set; }
 
     /// <summary>
@@ -29,11 +29,11 @@ public class StudentAttempt
     /// </summary>
     public string? OverridesJson { get; set; }
 
-    /// <summary>Server timestamp (UTC) recorded when the student opened the game.</summary>
+    /// <summary>Server timestamp (UTC) recorded when the student opened the assignment.</summary>
     public DateTime StartedAt { get; set; } = DateTime.UtcNow;
 
     /// <summary>
-    /// Server timestamp (UTC) of submission. For timed games the backend invalidates the
+    /// Server timestamp (UTC) of submission. For timed assignments the backend invalidates the
     /// attempt when SubmittedAt - StartedAt > TimeLimitSeconds + grace period.
     /// </summary>
     public DateTime? SubmittedAt { get; set; }
@@ -42,8 +42,8 @@ public class StudentAttempt
     public string? TeacherFeedback { get; set; }
 
     // ── Relationships ─────────────────────────────────────────────────────
-    public int GameInstanceId { get; set; }
-    public GameInstance GameInstance { get; set; } = null!;
+    public int AssignmentId { get; set; }
+    public Assignment Assignment { get; set; } = null!;
 
     public string StudentId { get; set; } = null!;
     public ApplicationUser Student { get; set; } = null!;

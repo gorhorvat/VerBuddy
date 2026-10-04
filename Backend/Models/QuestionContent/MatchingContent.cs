@@ -1,7 +1,7 @@
-namespace Backend.Models.GameContent;
+namespace Backend.Models.QuestionContent;
 
 /// <summary>
-/// Strongly-typed shape of <see cref="Question.JsonContent"/> for GameType.WordMatching.
+/// Strongly-typed shape of <see cref="Question.JsonContent"/> for AssignmentType.Matching.
 /// Serialized with System.Text.Json into the nvarchar(max) column.
 ///
 /// Example stored JSON:
@@ -14,7 +14,7 @@ namespace Backend.Models.GameContent;
 ///   ]
 /// }
 /// </summary>
-public sealed class WordMatchingContent
+public sealed class MatchingContent
 {
     public string Instructions { get; set; } = "Match the pairs.";
 
@@ -32,11 +32,11 @@ public sealed class WordPair
 }
 
 /// <summary>
-/// Shape of <see cref="StudentAttempt.AnswersJson"/> for Word Matching:
+/// Shape of <see cref="StudentAttempt.AnswersJson"/> for matching:
 /// the student's chosen value for each key. Grading compares each entry
-/// against <see cref="WordMatchingContent.Pairs"/>.
+/// against <see cref="MatchingContent.Pairs"/>.
 /// </summary>
-public sealed class WordMatchingAnswers
+public sealed class MatchingAnswers
 {
     public Dictionary<string, string> Matches { get; set; } = [];
 }

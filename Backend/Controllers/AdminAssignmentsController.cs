@@ -10,27 +10,27 @@ using Microsoft.EntityFrameworkCore;
 namespace Backend.Controllers;
 
 /// <summary>
-/// Teacher-only game instance management: CRUD, question configuration and
+/// Teacher-only assignment instance management: CRUD, question configuration and
 /// lifecycle transitions (Draft → Active → Closed). Question content is only
-/// editable while the game is in Draft, so active/graded games stay immutable.
+/// editable while the assignment is in Draft, so active/graded assignments stay immutable.
 /// </summary>
 [ApiController]
-[Route("api/admin/games")]
+[Route("api/admin/assignments")]
 [Authorize(Roles = AppRoles.AdminOrSuperAdmin)]
-public class AdminGamesController(AppDbContext db) : ControllerBase
+public class AdminAssignmentsController(AppDbContext db) : ControllerBase
 {
     private string TeacherId => User.FindFirstValue(ClaimTypes.NameIdentifier)!;
 
-    // ─── Game instances ────────────────────────────────────────────────────
+    // ─── Assignment instances ────────────────────────────────────────────────────
 
     [HttpGet]
-    public async Task<ActionResult<List<GameSummaryDto>>> List()
+    public async Task<ActionResult<List<AssignmentSummaryDto>>> List()
     {
-        return await db.GameInstances
+        return await db.Assignments
             .Where(g => g.CreatedByTeacherId == TeacherId)
             .OrderByDescending(g => g.CreatedAt)
-            .Select(g => new GameSummaryDto(
-                g.Id, g.Title, g.Description, g.GameType, g.State,
+            .Select(g => new AssignmentSummaryDto(
+                g.Id, g.Title, g.Description, g.AssignmentType, g.State,
                 g.TimeLimitSeconds, g.XpReward, g.RequireFeedback,
                 g.CategoryId, g.Category != null ? g.Category.Name : null, g.CreatedAt,
                 g.Questions.Count, g.Attempts.Count,
@@ -42,30 +42,30 @@ public class AdminGamesController(AppDbContext db) : ControllerBase
     }
 
     [HttpGet("{id:int}")]
-    public async Task<ActionResult<GameDetailDto>> Get(int id)
+    public async Task<ActionResult<AssignmentDetailDto>> Get(int id)
     {
-        var game = await db.GameInstances
+        var assignment = await db.Assignments
             .Include(g => g.Questions.OrderBy(q => q.Order))
             .Include(g => g.Category)
             .FirstOrDefaultAsync(g => g.Id == id && g.CreatedByTeacherId == TeacherId);
-        if (game is null)
+        if (assignment is null)
             return NotFound();
 
-        return ToDetailDto(game, await db.StudentAttempts.CountAsync(a => a.GameInstanceId == id));
+        return ToDetailDto(assignment, await db.StudentAttempts.CountAsync(a => a.AssignmentId == id));
     }
 
     [HttpPost]
-    public async Task<ActionResult<GameDetailDto>> Create(CreateGameRequest request)
+    public async Task<ActionResult<AssignmentDetailDto>> Create(CreateAssignmentRequest request)
     {
         if (!await OwnsCategoryAsync(request.CategoryId))
             return BadRequest(new { message = "Unknown category." });
 
-        var game = new GameInstance
+        var assignment = new Assignment
         {
             Title = request.Title,
             Description = request.Description,
-            GameType = request.GameType,
-            State = GameState.Draft,
+            AssignmentType = request.AssignmentType,
+            State = AssignmentState.Draft,
             TimeLimitSeconds = request.TimeLimitSeconds,
             XpReward = request.XpReward,
             RequireFeedback = request.RequireFeedback,
@@ -73,71 +73,71 @@ public class AdminGamesController(AppDbContext db) : ControllerBase
             CreatedByTeacherId = TeacherId
         };
 
-        db.GameInstances.Add(game);
+        db.Assignments.Add(assignment);
         await db.SaveChangesAsync();
 
-        return CreatedAtAction(nameof(Get), new { id = game.Id }, ToDetailDto(game, 0));
+        return CreatedAtAction(nameof(Get), new { id = assignment.Id }, ToDetailDto(assignment, 0));
     }
 
     [HttpPut("{id:int}")]
-    public async Task<ActionResult<GameDetailDto>> Update(int id, UpdateGameRequest request)
+    public async Task<ActionResult<AssignmentDetailDto>> Update(int id, UpdateAssignmentRequest request)
     {
-        var game = await FindOwnGameAsync(id);
-        if (game is null)
+        var assignment = await FindOwnAssignmentAsync(id);
+        if (assignment is null)
             return NotFound();
 
         // Title/description/category fixes are always allowed; the fairness-relevant
         // settings (timer, XP, grading mode) are frozen only while students can
-        // actively play — Draft and Closed games are fully editable.
-        if (game.State == GameState.Active &&
-            (game.TimeLimitSeconds != request.TimeLimitSeconds ||
-             game.XpReward != request.XpReward ||
-             game.RequireFeedback != request.RequireFeedback))
+        // actively play — Draft and Closed assignments are fully editable.
+        if (assignment.State == AssignmentState.Active &&
+            (assignment.TimeLimitSeconds != request.TimeLimitSeconds ||
+             assignment.XpReward != request.XpReward ||
+             assignment.RequireFeedback != request.RequireFeedback))
         {
-            return Conflict(new { message = "Timer, XP reward and grading mode cannot be changed while the game is Active. Close it first." });
+            return Conflict(new { message = "Timer, XP reward and grading mode cannot be changed while the assignment is Active. Close it first." });
         }
 
         if (!await OwnsCategoryAsync(request.CategoryId))
             return BadRequest(new { message = "Unknown category." });
 
-        game.Title = request.Title;
-        game.Description = request.Description;
-        game.TimeLimitSeconds = request.TimeLimitSeconds;
-        game.XpReward = request.XpReward;
-        game.RequireFeedback = request.RequireFeedback;
-        game.CategoryId = request.CategoryId;
+        assignment.Title = request.Title;
+        assignment.Description = request.Description;
+        assignment.TimeLimitSeconds = request.TimeLimitSeconds;
+        assignment.XpReward = request.XpReward;
+        assignment.RequireFeedback = request.RequireFeedback;
+        assignment.CategoryId = request.CategoryId;
         await db.SaveChangesAsync();
 
-        return ToDetailDto(game, await db.StudentAttempts.CountAsync(a => a.GameInstanceId == id));
+        return ToDetailDto(assignment, await db.StudentAttempts.CountAsync(a => a.AssignmentId == id));
     }
 
     /// <summary>
-    /// Duplicates a game (including its questions and answer keys) as a new
+    /// Duplicates an assignment (including its questions and answer keys) as a new
     /// Draft — "use as template" for building a variant without touching the
     /// original.
     /// </summary>
     [HttpPost("{id:int}/duplicate")]
-    public async Task<ActionResult<GameDetailDto>> Duplicate(int id)
+    public async Task<ActionResult<AssignmentDetailDto>> Duplicate(int id)
     {
-        var game = await db.GameInstances
+        var assignment = await db.Assignments
             .Include(g => g.Questions)
             .Include(g => g.Category)
             .FirstOrDefaultAsync(g => g.Id == id && g.CreatedByTeacherId == TeacherId);
-        if (game is null)
+        if (assignment is null)
             return NotFound();
 
-        var copy = new GameInstance
+        var copy = new Assignment
         {
-            Title = game.Title + " (copy)",
-            Description = game.Description,
-            GameType = game.GameType,
-            State = GameState.Draft,
-            TimeLimitSeconds = game.TimeLimitSeconds,
-            XpReward = game.XpReward,
-            RequireFeedback = game.RequireFeedback,
-            CategoryId = game.CategoryId,
+            Title = assignment.Title + " (copy)",
+            Description = assignment.Description,
+            AssignmentType = assignment.AssignmentType,
+            State = AssignmentState.Draft,
+            TimeLimitSeconds = assignment.TimeLimitSeconds,
+            XpReward = assignment.XpReward,
+            RequireFeedback = assignment.RequireFeedback,
+            CategoryId = assignment.CategoryId,
             CreatedByTeacherId = TeacherId,
-            Questions = game.Questions.Select(q => new Question
+            Questions = assignment.Questions.Select(q => new Question
             {
                 Prompt = q.Prompt,
                 Order = q.Order,
@@ -146,9 +146,9 @@ public class AdminGamesController(AppDbContext db) : ControllerBase
             }).ToList()
         };
 
-        db.GameInstances.Add(copy);
+        db.Assignments.Add(copy);
         await db.SaveChangesAsync();
-        copy.Category = game.Category;
+        copy.Category = assignment.Category;
 
         return CreatedAtAction(nameof(Get), new { id = copy.Id }, ToDetailDto(copy, 0));
     }
@@ -156,14 +156,14 @@ public class AdminGamesController(AppDbContext db) : ControllerBase
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id)
     {
-        var game = await FindOwnGameAsync(id);
-        if (game is null)
+        var assignment = await FindOwnAssignmentAsync(id);
+        if (assignment is null)
             return NotFound();
 
-        if (await db.StudentAttempts.AnyAsync(a => a.GameInstanceId == id))
-            return Conflict(new { message = "A game with recorded attempts cannot be deleted. Close it instead." });
+        if (await db.StudentAttempts.AnyAsync(a => a.AssignmentId == id))
+            return Conflict(new { message = "An assignment with recorded attempts cannot be deleted. Close it instead." });
 
-        db.GameInstances.Remove(game); // Questions cascade-delete.
+        db.Assignments.Remove(assignment); // Questions cascade-delete.
         await db.SaveChangesAsync();
         return NoContent();
     }
@@ -173,72 +173,72 @@ public class AdminGamesController(AppDbContext db) : ControllerBase
     /// Closed→Active (reopen), Active→Draft (only while no attempts exist).
     /// </summary>
     [HttpPost("{id:int}/state")]
-    public async Task<ActionResult<GameDetailDto>> ChangeState(int id, ChangeGameStateRequest request)
+    public async Task<ActionResult<AssignmentDetailDto>> ChangeState(int id, ChangeAssignmentStateRequest request)
     {
-        var game = await db.GameInstances
+        var assignment = await db.Assignments
             .Include(g => g.Questions)
             .FirstOrDefaultAsync(g => g.Id == id && g.CreatedByTeacherId == TeacherId);
-        if (game is null)
+        if (assignment is null)
             return NotFound();
 
-        var attemptCount = await db.StudentAttempts.CountAsync(a => a.GameInstanceId == id);
+        var attemptCount = await db.StudentAttempts.CountAsync(a => a.AssignmentId == id);
 
-        var error = (game.State, request.State) switch
+        var error = (assignment.State, request.State) switch
         {
-            var (from, to) when from == to => "The game is already in that state.",
-            (GameState.Draft, GameState.Active) when game.Questions.Count == 0
+            var (from, to) when from == to => "The assignment is already in that state.",
+            (AssignmentState.Draft, AssignmentState.Active) when assignment.Questions.Count == 0
                 => "Add at least one question before activating.",
-            (GameState.Draft, GameState.Active) => null,
-            (GameState.Active, GameState.Closed) => null,
-            (GameState.Closed, GameState.Active) => null,
-            (GameState.Active, GameState.Draft) when attemptCount > 0
-                => "Cannot move back to Draft: students have already attempted this game.",
-            (GameState.Active, GameState.Draft) => null,
-            _ => $"Transition {game.State} → {request.State} is not allowed."
+            (AssignmentState.Draft, AssignmentState.Active) => null,
+            (AssignmentState.Active, AssignmentState.Closed) => null,
+            (AssignmentState.Closed, AssignmentState.Active) => null,
+            (AssignmentState.Active, AssignmentState.Draft) when attemptCount > 0
+                => "Cannot move back to Draft: students have already attempted this assignment.",
+            (AssignmentState.Active, AssignmentState.Draft) => null,
+            _ => $"Transition {assignment.State} → {request.State} is not allowed."
         };
         if (error is not null)
             return Conflict(new { message = error });
 
-        game.State = request.State;
+        assignment.State = request.State;
         await db.SaveChangesAsync();
 
-        return ToDetailDto(game, attemptCount);
+        return ToDetailDto(assignment, attemptCount);
     }
 
-    /// <summary>Re-files the game into another category (or General), in any state.</summary>
+    /// <summary>Re-files the assignment into another category (or General), in any state.</summary>
     [HttpPost("{id:int}/category")]
-    public async Task<ActionResult<GameDetailDto>> ChangeCategory(int id, ChangeCategoryRequest request)
+    public async Task<ActionResult<AssignmentDetailDto>> ChangeCategory(int id, ChangeCategoryRequest request)
     {
-        var game = await db.GameInstances
+        var assignment = await db.Assignments
             .Include(g => g.Questions)
             .FirstOrDefaultAsync(g => g.Id == id && g.CreatedByTeacherId == TeacherId);
-        if (game is null)
+        if (assignment is null)
             return NotFound();
         if (!await OwnsCategoryAsync(request.CategoryId))
             return BadRequest(new { message = "Unknown category." });
 
-        game.CategoryId = request.CategoryId;
+        assignment.CategoryId = request.CategoryId;
         await db.SaveChangesAsync();
-        await db.Entry(game).Reference(g => g.Category).LoadAsync();
+        await db.Entry(assignment).Reference(g => g.Category).LoadAsync();
 
-        return ToDetailDto(game, await db.StudentAttempts.CountAsync(a => a.GameInstanceId == id));
+        return ToDetailDto(assignment, await db.StudentAttempts.CountAsync(a => a.AssignmentId == id));
     }
 
     /// <summary>
-    /// Every student's every answer for this game, with the answer key and the
+    /// Every student's every answer for this assignment, with the answer key and the
     /// per-question auto/override points — feeds the teacher's answers view.
     /// </summary>
     [HttpGet("{id:int}/answers")]
-    public async Task<ActionResult<GameAnswersDto>> Answers(int id)
+    public async Task<ActionResult<AssignmentAnswersDto>> Answers(int id)
     {
-        var game = await db.GameInstances
+        var assignment = await db.Assignments
             .Include(g => g.Questions.OrderBy(q => q.Order))
             .FirstOrDefaultAsync(g => g.Id == id && g.CreatedByTeacherId == TeacherId);
-        if (game is null)
+        if (assignment is null)
             return NotFound();
 
         var attempts = await db.StudentAttempts
-            .Where(a => a.GameInstanceId == id && a.Status != AttemptStatus.InProgress)
+            .Where(a => a.AssignmentId == id && a.Status != AttemptStatus.InProgress)
             .Include(a => a.Student)
             .OrderBy(a => a.Student.DisplayName)
             .ToListAsync();
@@ -250,11 +250,11 @@ public class AdminGamesController(AppDbContext db) : ControllerBase
             return new AttemptAnswersDto(
                 a.Id, a.Student.DisplayName, a.Student.FirstName, a.Student.LastName,
                 a.Status, a.Score, a.MaxScore, a.EarnedXp, a.SubmittedAt,
-                game.Questions.OrderBy(q => q.Order).Select(q =>
+                assignment.Questions.OrderBy(q => q.Order).Select(q =>
                 {
                     System.Text.Json.JsonElement? answer =
                         answers.TryGetValue(q.Id, out var ans) ? ans : null;
-                    var auto = GradingService.Grade(game.GameType, q.JsonContent, answer, q.Points);
+                    var auto = GradingService.Grade(assignment.AssignmentType, q.JsonContent, answer, q.Points);
                     var isOverridden = overrides.TryGetValue(q.Id, out var final);
                     return new AnswerBreakdownDto(
                         q.Id, q.Order, q.Prompt, q.Points, q.JsonContent,
@@ -262,27 +262,27 @@ public class AdminGamesController(AppDbContext db) : ControllerBase
                 }).ToList());
         }).ToList();
 
-        return new GameAnswersDto(game.Id, game.Title, game.GameType, game.XpReward, attemptDtos);
+        return new AssignmentAnswersDto(assignment.Id, assignment.Title, assignment.AssignmentType, assignment.XpReward, attemptDtos);
     }
 
-    // ─── Questions (editable unless the game is Active) ────────────────────
+    // ─── Questions (editable unless the assignment is Active) ────────────────────
 
     [HttpPost("{id:int}/questions")]
     public async Task<ActionResult<QuestionAdminDto>> AddQuestion(int id, QuestionRequest request)
     {
-        var game = await FindOwnGameAsync(id);
-        if (game is null)
+        var assignment = await FindOwnAssignmentAsync(id);
+        if (assignment is null)
             return NotFound();
-        if (game.State == GameState.Active)
-            return Conflict(new { message = "Questions cannot be added while the game is Active. Close it first." });
+        if (assignment.State == AssignmentState.Active)
+            return Conflict(new { message = "Questions cannot be added while the assignment is Active. Close it first." });
 
-        var contentError = GameContentValidator.Validate(game.GameType, request.JsonContent);
+        var contentError = QuestionContentValidator.Validate(assignment.AssignmentType, request.JsonContent);
         if (contentError is not null)
             return BadRequest(new { message = contentError });
 
         var question = new Question
         {
-            GameInstanceId = id,
+            AssignmentId = id,
             Prompt = request.Prompt,
             Order = request.Order,
             Points = request.Points,
@@ -297,13 +297,13 @@ public class AdminGamesController(AppDbContext db) : ControllerBase
     [HttpPut("{id:int}/questions/{questionId:int}")]
     public async Task<ActionResult<QuestionAdminDto>> UpdateQuestion(int id, int questionId, QuestionRequest request)
     {
-        var (game, question) = await FindOwnQuestionAsync(id, questionId);
-        if (game is null || question is null)
+        var (assignment, question) = await FindOwnQuestionAsync(id, questionId);
+        if (assignment is null || question is null)
             return NotFound();
-        if (game.State == GameState.Active)
-            return Conflict(new { message = "Questions cannot be edited while the game is Active. Close it first." });
+        if (assignment.State == AssignmentState.Active)
+            return Conflict(new { message = "Questions cannot be edited while the assignment is Active. Close it first." });
 
-        var contentError = GameContentValidator.Validate(game.GameType, request.JsonContent);
+        var contentError = QuestionContentValidator.Validate(assignment.AssignmentType, request.JsonContent);
         if (contentError is not null)
             return BadRequest(new { message = contentError });
 
@@ -319,11 +319,11 @@ public class AdminGamesController(AppDbContext db) : ControllerBase
     [HttpDelete("{id:int}/questions/{questionId:int}")]
     public async Task<IActionResult> DeleteQuestion(int id, int questionId)
     {
-        var (game, question) = await FindOwnQuestionAsync(id, questionId);
-        if (game is null || question is null)
+        var (assignment, question) = await FindOwnQuestionAsync(id, questionId);
+        if (assignment is null || question is null)
             return NotFound();
-        if (game.State == GameState.Active)
-            return Conflict(new { message = "Questions cannot be deleted while the game is Active. Close it first." });
+        if (assignment.State == AssignmentState.Active)
+            return Conflict(new { message = "Questions cannot be deleted while the assignment is Active. Close it first." });
 
         db.Questions.Remove(question);
         await db.SaveChangesAsync();
@@ -332,8 +332,8 @@ public class AdminGamesController(AppDbContext db) : ControllerBase
 
     // ─── Helpers ───────────────────────────────────────────────────────────
 
-    private Task<GameInstance?> FindOwnGameAsync(int id) =>
-        db.GameInstances
+    private Task<Assignment?> FindOwnAssignmentAsync(int id) =>
+        db.Assignments
             .Include(g => g.Category)
             .FirstOrDefaultAsync(g => g.Id == id && g.CreatedByTeacherId == TeacherId);
 
@@ -342,18 +342,18 @@ public class AdminGamesController(AppDbContext db) : ControllerBase
         categoryId is null ||
         await db.Categories.AnyAsync(c => c.Id == categoryId && c.TeacherId == TeacherId);
 
-    private async Task<(GameInstance?, Question?)> FindOwnQuestionAsync(int gameId, int questionId)
+    private async Task<(Assignment?, Question?)> FindOwnQuestionAsync(int assignmentId, int questionId)
     {
-        var game = await FindOwnGameAsync(gameId);
-        if (game is null)
+        var assignment = await FindOwnAssignmentAsync(assignmentId);
+        if (assignment is null)
             return (null, null);
         var question = await db.Questions
-            .FirstOrDefaultAsync(q => q.Id == questionId && q.GameInstanceId == gameId);
-        return (game, question);
+            .FirstOrDefaultAsync(q => q.Id == questionId && q.AssignmentId == assignmentId);
+        return (assignment, question);
     }
 
-    private static GameDetailDto ToDetailDto(GameInstance g, int attemptCount) =>
-        new(g.Id, g.Title, g.Description, g.GameType, g.State,
+    private static AssignmentDetailDto ToDetailDto(Assignment g, int attemptCount) =>
+        new(g.Id, g.Title, g.Description, g.AssignmentType, g.State,
             g.TimeLimitSeconds, g.XpReward, g.RequireFeedback,
             g.CategoryId, g.Category?.Name, g.CreatedAt, attemptCount,
             g.Questions.OrderBy(q => q.Order).Select(ToQuestionDto).ToList());

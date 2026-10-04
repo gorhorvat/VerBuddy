@@ -1,7 +1,7 @@
 import { Button } from './ui'
 
 /**
- * Celebratory popup shown when a submitted game pushes the student past a
+ * Celebratory popup shown when a submitted assignment pushes the student past a
  * level threshold. Rendered on top of the result screen; deliberately has no
  * outside-click dismiss — the Continue button is the only way out.
  */

@@ -7,7 +7,7 @@ namespace Backend.Data;
 public class AppDbContext(DbContextOptions<AppDbContext> options)
     : IdentityDbContext<ApplicationUser>(options)
 {
-    public DbSet<GameInstance> GameInstances => Set<GameInstance>();
+    public DbSet<Assignment> Assignments => Set<Assignment>();
     public DbSet<Question> Questions => Set<Question>();
     public DbSet<StudentAttempt> StudentAttempts => Set<StudentAttempt>();
     public DbSet<Category> Categories => Set<Category>();
@@ -39,7 +39,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             user.Property(u => u.CreatedByAdminId).HasMaxLength(450);
             user.HasIndex(u => u.CreatedByAdminId);
 
-            // A student may belong to any number of classes (categories), via an
+            // A student may belong to any number of categories, via an
             // explicit join table so both FKs can cascade-delete cleanly.
             user.HasMany(u => u.Categories)
                 .WithMany(c => c.Students)
@@ -70,26 +70,26 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
                 .OnDelete(DeleteBehavior.Restrict);
         });
 
-        builder.Entity<GameInstance>(game =>
+        builder.Entity<Assignment>(assignment =>
         {
-            game.Property(g => g.Title).IsRequired().HasMaxLength(200);
-            game.Property(g => g.Description).HasMaxLength(1000);
+            assignment.Property(g => g.Title).IsRequired().HasMaxLength(200);
+            assignment.Property(g => g.Description).HasMaxLength(1000);
 
             // Stored as readable strings so the DB is self-describing for the teacher.
-            game.Property(g => g.GameType).HasConversion<string>().HasMaxLength(30);
-            game.Property(g => g.State).HasConversion<string>().HasMaxLength(20);
+            assignment.Property(g => g.AssignmentType).HasConversion<string>().HasMaxLength(30);
+            assignment.Property(g => g.State).HasConversion<string>().HasMaxLength(20);
 
-            // Student dashboard query: "all Active games".
-            game.HasIndex(g => g.State);
+            // Student dashboard query: "all Active assignments".
+            assignment.HasIndex(g => g.State);
 
-            game.HasOne(g => g.CreatedByTeacher)
-                .WithMany(u => u.CreatedGames)
+            assignment.HasOne(g => g.CreatedByTeacher)
+                .WithMany(u => u.CreatedAssignments)
                 .HasForeignKey(g => g.CreatedByTeacherId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // Deleting a category moves its games back to "General" (null).
-            game.HasOne(g => g.Category)
-                .WithMany(c => c.Games)
+            // Deleting a category moves its assignments back to "General" (null).
+            assignment.HasOne(g => g.Category)
+                .WithMany(c => c.Assignments)
                 .HasForeignKey(g => g.CategoryId)
                 .OnDelete(DeleteBehavior.SetNull);
         });
@@ -98,18 +98,18 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
         {
             question.Property(q => q.Prompt).IsRequired().HasMaxLength(2000);
 
-            // Variable per-game-type payload — nvarchar(max) JSON keeps the
-            // schema stable when new game types are added.
+            // Variable per-assignment-type payload — nvarchar(max) JSON keeps the
+            // schema stable when new assignment types are added.
             question.Property(q => q.JsonContent)
                 .IsRequired()
                 .HasColumnType("nvarchar(max)");
 
-            question.HasOne(q => q.GameInstance)
+            question.HasOne(q => q.Assignment)
                 .WithMany(g => g.Questions)
-                .HasForeignKey(q => q.GameInstanceId)
+                .HasForeignKey(q => q.AssignmentId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            question.HasIndex(q => new { q.GameInstanceId, q.Order });
+            question.HasIndex(q => new { q.AssignmentId, q.Order });
         });
 
         builder.Entity<StudentAttempt>(attempt =>
@@ -119,12 +119,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             attempt.Property(a => a.TeacherFeedback).HasMaxLength(2000);
 
             // The one-attempt lock: a student can never hold two attempts
-            // for the same game instance.
-            attempt.HasIndex(a => new { a.GameInstanceId, a.StudentId }).IsUnique();
+            // for the same assignment instance.
+            attempt.HasIndex(a => new { a.AssignmentId, a.StudentId }).IsUnique();
 
-            attempt.HasOne(a => a.GameInstance)
+            attempt.HasOne(a => a.Assignment)
                 .WithMany(g => g.Attempts)
-                .HasForeignKey(a => a.GameInstanceId)
+                .HasForeignKey(a => a.AssignmentId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             // Restrict avoids multiple cascade paths (SQL Server limitation) and

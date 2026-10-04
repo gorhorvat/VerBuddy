@@ -65,7 +65,7 @@ right-click DB → *Deploy Database to Microsoft Azure SQL Database* before firs
 
 1. `https://<app>.azurewebsites.net/api/auth/login` responds (405/400 on GET is fine).
 2. Open the Vercel URL → log in as the configured SuperAdmin → create + activate an
-   admin (email arrives via Brevo) → log in as that admin → create a class, students, game.
+   admin (email arrives via Brevo) → log in as that admin → create a category, students, assignment.
 
 ## Local development (unchanged)
 

@@ -1,4 +1,4 @@
-// Overlapping initial-avatars for students who attempted a game. Shows up to
+// Overlapping initial-avatars for students who attempted an assignment. Shows up to
 // `max` avatars; the overflow collapses into a "+N" chip whose hover popup
 // lists the remaining names. Hovering any avatar reveals its display name.
 

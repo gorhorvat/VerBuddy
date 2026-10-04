@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { api, type AnswerBreakdown, type AttemptAnswers, type GameAnswers as GameAnswersData } from '../../api'
-import { Badge, Button, Card, ErrorText, Spinner, gameTypeLabels } from '../../components/ui'
+import { api, type AnswerBreakdown, type AttemptAnswers, type AssignmentAnswers as AssignmentAnswersData } from '../../api'
+import { Badge, Button, Card, ErrorText, Spinner, assignmentTypeLabels } from '../../components/ui'
 import AnswerView from '../../components/AnswerView'
 
 function OverrideControl({
@@ -60,12 +60,12 @@ function OverrideControl({
 
 function AttemptCard({
   attempt,
-  gameType,
+  assignmentType,
   onChanged,
   onError,
 }: {
   attempt: AttemptAnswers
-  gameType: GameAnswersData['gameType']
+  assignmentType: AssignmentAnswersData['assignmentType']
   onChanged: () => void
   onError: (message: string) => void
 }) {
@@ -101,21 +101,21 @@ function AttemptCard({
               <p className="text-sm font-semibold">{b.order}. {b.prompt}</p>
               <OverrideControl attemptId={attempt.attemptId} breakdown={b} onSaved={onChanged} onError={onError} />
             </div>
-            <AnswerView gameType={gameType} breakdown={b} />
+            <AnswerView assignmentType={assignmentType} breakdown={b} />
           </div>
         ))}
     </Card>
   )
 }
 
-/** All students' answers for one game, with per-answer point overrides. */
-export default function GameAnswers() {
+/** All students' answers for one assignment, with per-answer point overrides. */
+export default function AssignmentAnswers() {
   const { id } = useParams() as { id: string }
-  const [data, setData] = useState<GameAnswersData | null>(null)
+  const [data, setData] = useState<AssignmentAnswersData | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const load = () =>
-    api<GameAnswersData>(`/api/admin/games/${id}/answers`)
+    api<AssignmentAnswersData>(`/api/admin/assignments/${id}/answers`)
       .then(setData)
       .catch((e) => setError(e.message))
 
@@ -129,10 +129,10 @@ export default function GameAnswers() {
 
   return (
     <div className="space-y-3">
-      <Link to="/teacher/games" className="text-sm font-semibold text-indigo-600">← All games</Link>
+      <Link to="/teacher/assignments" className="text-sm font-semibold text-indigo-600">← All assignments</Link>
       <h1 className="text-2xl font-bold">{data.title} — answers</h1>
       <p className="text-xs text-slate-500">
-        {gameTypeLabels[data.gameType]} · adjusting points recalculates the student's score and XP immediately.
+        {assignmentTypeLabels[data.assignmentType]} · adjusting points recalculates the student's score and XP immediately.
       </p>
       <ErrorText message={error} />
       {data.attempts.length === 0 && (
@@ -142,7 +142,7 @@ export default function GameAnswers() {
         <AttemptCard
           key={attempt.attemptId}
           attempt={attempt}
-          gameType={data.gameType}
+          assignmentType={data.assignmentType}
           onChanged={load}
           onError={setError}
         />

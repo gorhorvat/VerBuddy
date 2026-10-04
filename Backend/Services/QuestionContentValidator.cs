@@ -1,31 +1,31 @@
 using System.Text.Json;
 using Backend.Models;
-using Backend.Models.GameContent;
+using Backend.Models.QuestionContent;
 
 namespace Backend.Services;
 
 /// <summary>
 /// Validates a question's JsonContent against the strongly-typed shape for its
-/// game type before it is stored. Keeps the flexible nvarchar(max) column from
+/// assignment type before it is stored. Keeps the flexible nvarchar(max) column from
 /// ever holding malformed or ungradeable payloads.
 /// </summary>
-public static class GameContentValidator
+public static class QuestionContentValidator
 {
     private static readonly JsonSerializerOptions JsonOptions =
         new(JsonSerializerDefaults.Web);
 
     /// <summary>Returns an error message, or null when the content is valid.</summary>
-    public static string? Validate(GameType gameType, string jsonContent)
+    public static string? Validate(AssignmentType assignmentType, string jsonContent)
     {
         try
         {
-            return gameType switch
+            return assignmentType switch
             {
-                GameType.SingleChoice => ValidateSingleChoice(jsonContent),
-                GameType.MultipleChoice => ValidateMultipleChoice(jsonContent),
-                GameType.FillInTheBlanks => ValidateFillInTheBlanks(jsonContent),
-                GameType.WordMatching => ValidateWordMatching(jsonContent),
-                _ => $"Unknown game type '{gameType}'."
+                AssignmentType.SingleChoice => ValidateSingleChoice(jsonContent),
+                AssignmentType.MultipleChoice => ValidateMultipleChoice(jsonContent),
+                AssignmentType.FillInTheBlanks => ValidateFillInTheBlanks(jsonContent),
+                AssignmentType.Matching => ValidateMatching(jsonContent),
+                _ => $"Unknown assignment type '{assignmentType}'."
             };
         }
         catch (JsonException ex)
@@ -76,11 +76,11 @@ public static class GameContentValidator
         return null;
     }
 
-    private static string? ValidateWordMatching(string json)
+    private static string? ValidateMatching(string json)
     {
-        var content = Deserialize<WordMatchingContent>(json);
+        var content = Deserialize<MatchingContent>(json);
         if (content is null) return "Content is empty.";
-        if (content.Pairs.Count < 2) return "Word matching needs at least 2 pairs.";
+        if (content.Pairs.Count < 2) return "matching needs at least 2 pairs.";
         if (content.Pairs.Any(p => string.IsNullOrWhiteSpace(p.Key) || string.IsNullOrWhiteSpace(p.Value)))
             return "Every pair needs a non-empty key and value.";
         if (content.Pairs.Select(p => p.Key).Distinct(StringComparer.OrdinalIgnoreCase).Count() != content.Pairs.Count)

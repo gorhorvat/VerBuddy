@@ -5,8 +5,8 @@ const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:5247'
 
 // ─── Types (camelCase mirrors of the backend DTOs) ─────────────────────────
 
-export type GameType = 'SingleChoice' | 'MultipleChoice' | 'FillInTheBlanks' | 'WordMatching'
-export type GameState = 'Draft' | 'Active' | 'Closed'
+export type AssignmentType = 'SingleChoice' | 'MultipleChoice' | 'FillInTheBlanks' | 'Matching'
+export type AssignmentState = 'Draft' | 'Active' | 'Closed'
 export type AttemptStatus = 'InProgress' | 'Completed' | 'PendingReview' | 'Invalidated'
 
 export interface AuthResponse {
@@ -55,16 +55,16 @@ export interface RewardApplication {
 export interface Category {
   id: number
   name: string
-  gameCount: number
+  assignmentCount: number
   studentCount: number
 }
 
-export interface StudentGameSummary {
+export interface StudentAssignmentSummary {
   id: number
   title: string
   description: string | null
-  gameType: GameType
-  state: GameState
+  assignmentType: AssignmentType
+  state: AssignmentState
   timeLimitSeconds: number | null
   xpReward: number
   questionCount: number
@@ -108,14 +108,14 @@ export interface LeaderboardEntry {
   totalXp: number
 }
 
-export interface LeaderboardClass {
+export interface LeaderboardCategory {
   id: number
   name: string
   entries: LeaderboardEntry[]
 }
 
 export interface Leaderboards {
-  classes: LeaderboardClass[]
+  categories: LeaderboardCategory[]
   globalEntries: LeaderboardEntry[]
 }
 
@@ -146,28 +146,28 @@ export interface AttemptAnswers {
   answers: AnswerBreakdown[]
 }
 
-export interface GameAnswers {
-  gameId: number
+export interface AssignmentAnswers {
+  assignmentId: number
   title: string
-  gameType: GameType
+  assignmentType: AssignmentType
   xpReward: number
   attempts: AttemptAnswers[]
 }
 
 export interface MyAnswers {
-  gameId: number
+  assignmentId: number
   title: string
-  gameType: GameType
+  assignmentType: AssignmentType
   result: AttemptResult
   answers: AnswerBreakdown[]
 }
 
-export interface GameSummary {
+export interface AssignmentSummary {
   id: number
   title: string
   description: string | null
-  gameType: GameType
-  state: GameState
+  assignmentType: AssignmentType
+  state: AssignmentState
   timeLimitSeconds: number | null
   xpReward: number
   requireFeedback: boolean
@@ -187,15 +187,15 @@ export interface QuestionAdmin {
   jsonContent: string
 }
 
-export interface GameDetail extends Omit<GameSummary, 'questionCount' | 'attemptDisplayNames'> {
+export interface AssignmentDetail extends Omit<AssignmentSummary, 'questionCount' | 'attemptDisplayNames'> {
   questions: QuestionAdmin[]
 }
 
 export interface AttemptAdmin {
   id: number
-  gameInstanceId: number
-  gameTitle: string
-  gameType: GameType
+  assignmentId: number
+  assignmentTitle: string
+  assignmentType: AssignmentType
   studentDisplayName: string
   studentFirstName: string | null
   studentLastName: string | null

@@ -72,7 +72,7 @@ builder.Services.AddCors(options => options.AddPolicy(FrontendCors, policy => po
 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
-        // GameType/GameState travel as readable strings ("WordMatching", "Active").
+        // AssignmentType/AssignmentState travel as readable strings ("Matching", "Active").
         options.JsonSerializerOptions.Converters.Add(
             new System.Text.Json.Serialization.JsonStringEnumConverter()));
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi

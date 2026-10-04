@@ -1,10 +1,10 @@
 namespace Backend.Models;
 
 /// <summary>
-/// A playable unit created by the teacher (a game or a timed exam).
+/// A playable unit created by the teacher (an assignment or a timed exam).
 /// One instance owns an ordered set of <see cref="Question"/> rows.
 /// </summary>
-public class GameInstance
+public class Assignment
 {
     public int Id { get; set; }
 
@@ -12,9 +12,9 @@ public class GameInstance
 
     public string? Description { get; set; }
 
-    public GameType GameType { get; set; }
+    public AssignmentType AssignmentType { get; set; }
 
-    public GameState State { get; set; } = GameState.Draft;
+    public AssignmentState State { get; set; } = AssignmentState.Draft;
 
     /// <summary>
     /// Optional countdown. Null or 0 = completely untimed.
@@ -39,7 +39,7 @@ public class GameInstance
     public string CreatedByTeacherId { get; set; } = null!;
     public ApplicationUser CreatedByTeacher { get; set; } = null!;
 
-    /// <summary>Folder/class this game is filed under; null renders as "General".</summary>
+    /// <summary>Category this assignment is filed under; null renders as "General".</summary>
     public int? CategoryId { get; set; }
     public Category? Category { get; set; }
 

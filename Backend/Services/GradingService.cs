@@ -1,11 +1,11 @@
 using System.Text.Json;
 using Backend.Models;
-using Backend.Models.GameContent;
+using Backend.Models.QuestionContent;
 
 namespace Backend.Services;
 
 /// <summary>
-/// Auto-grading for all four game types, plus content sanitization: the payload
+/// Auto-grading for all four assignment types, plus content sanitization: the payload
 /// sent to students must never contain the answer key, so each type has an
 /// explicit student-facing projection built here.
 /// </summary>
@@ -19,31 +19,31 @@ public static class GradingService
 
     // ─── Student-safe content (answer keys stripped) ──────────────────────
 
-    public static string SanitizeForStudent(GameType type, string jsonContent)
+    public static string SanitizeForStudent(AssignmentType type, string jsonContent)
     {
         switch (type)
         {
-            case GameType.SingleChoice:
+            case AssignmentType.SingleChoice:
             {
                 var c = Deserialize<SingleChoiceContent>(jsonContent);
                 return JsonSerializer.Serialize(new { choices = c.Choices }, JsonOptions);
             }
-            case GameType.MultipleChoice:
+            case AssignmentType.MultipleChoice:
             {
                 var c = Deserialize<MultipleChoiceContent>(jsonContent);
                 // correctCount is a deliberate UX hint ("select 2"), not the key itself.
                 return JsonSerializer.Serialize(
                     new { choices = c.Choices, correctCount = c.CorrectIndexes.Count }, JsonOptions);
             }
-            case GameType.FillInTheBlanks:
+            case AssignmentType.FillInTheBlanks:
             {
                 var c = Deserialize<FillInTheBlanksContent>(jsonContent);
                 return JsonSerializer.Serialize(
                     new { template = c.Template, blankCount = c.Blanks.Count }, JsonOptions);
             }
-            case GameType.WordMatching:
+            case AssignmentType.Matching:
             {
-                var c = Deserialize<WordMatchingContent>(jsonContent);
+                var c = Deserialize<MatchingContent>(jsonContent);
                 var values = c.Pairs.Select(p => p.Value).ToList();
                 if (c.ShuffleRightColumn)
                     Shuffle(values);
@@ -62,7 +62,7 @@ public static class GradingService
     // ─── Grading ───────────────────────────────────────────────────────────
 
     /// <summary>Returns the points earned for one question (0 for unanswered or malformed).</summary>
-    public static int Grade(GameType type, string jsonContent, JsonElement? answer, int points)
+    public static int Grade(AssignmentType type, string jsonContent, JsonElement? answer, int points)
     {
         if (answer is not { } a)
             return 0; // Unanswered question.
@@ -71,10 +71,10 @@ public static class GradingService
         {
             return type switch
             {
-                GameType.SingleChoice => GradeSingleChoice(jsonContent, a, points),
-                GameType.MultipleChoice => GradeMultipleChoice(jsonContent, a, points),
-                GameType.FillInTheBlanks => GradeFillInTheBlanks(jsonContent, a, points),
-                GameType.WordMatching => GradeWordMatching(jsonContent, a, points),
+                AssignmentType.SingleChoice => GradeSingleChoice(jsonContent, a, points),
+                AssignmentType.MultipleChoice => GradeMultipleChoice(jsonContent, a, points),
+                AssignmentType.FillInTheBlanks => GradeFillInTheBlanks(jsonContent, a, points),
+                AssignmentType.Matching => GradeMatching(jsonContent, a, points),
                 _ => 0
             };
         }
@@ -134,9 +134,9 @@ public static class GradingService
     }
 
     /// <summary>Answer shape: { "matches": { "generous": "willing to ..." } } — partial credit per pair.</summary>
-    private static int GradeWordMatching(string json, JsonElement a, int points)
+    private static int GradeMatching(string json, JsonElement a, int points)
     {
-        var c = Deserialize<WordMatchingContent>(json);
+        var c = Deserialize<MatchingContent>(json);
         if (!a.TryGetProperty("matches", out var matches) || matches.ValueKind != JsonValueKind.Object)
             return 0;
 
@@ -173,7 +173,7 @@ public static class GradingService
 
     /// <summary>Final points for one question: teacher override wins over the auto grade.</summary>
     public static int FinalPoints(
-        Models.Question question, GameType type,
+        Models.Question question, AssignmentType type,
         Dictionary<int, JsonElement> answers, Dictionary<int, int> overrides)
     {
         if (overrides.TryGetValue(question.Id, out var overridden))

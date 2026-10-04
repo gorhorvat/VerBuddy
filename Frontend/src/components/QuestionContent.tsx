@@ -1,8 +1,8 @@
-import type { GameType } from '../api'
+import type { AssignmentType } from '../api'
 
 // Renders a question's jsonContent (the FULL content including the answer
 // key) in a human-readable form. Used in the teacher's question list
-// (GameEditor) where only the question shape matters — no student answer.
+// (AssignmentEditor) where only the question shape matters — no student answer.
 
 const rowBase = 'flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm'
 const correctRow = 'bg-emerald-50 text-emerald-900'
@@ -63,7 +63,7 @@ function FillInTheBlanksContent({
   )
 }
 
-function WordMatchingContentView({ pairs }: { pairs: { key: string; value: string }[] }) {
+function MatchingContentView({ pairs }: { pairs: { key: string; value: string }[] }) {
   return (
     <div className="space-y-1">
       {pairs.map((pair, i) => (
@@ -77,11 +77,11 @@ function WordMatchingContentView({ pairs }: { pairs: { key: string; value: strin
   )
 }
 
-/** Human-readable rendering of a question's jsonContent, per game type. */
-export default function QuestionContent({ gameType, jsonContent }: { gameType: GameType; jsonContent: string }) {
+/** Human-readable rendering of a question's jsonContent, per assignment type. */
+export default function QuestionContent({ assignmentType, jsonContent }: { assignmentType: AssignmentType; jsonContent: string }) {
   try {
     const content = JSON.parse(jsonContent) as Record<string, unknown>
-    switch (gameType) {
+    switch (assignmentType) {
       case 'SingleChoice':
         return (
           <ChoicesContent
@@ -103,8 +103,8 @@ export default function QuestionContent({ gameType, jsonContent }: { gameType: G
             blanks={content.blanks as { acceptedAnswers: string[] }[]}
           />
         )
-      case 'WordMatching':
-        return <WordMatchingContentView pairs={content.pairs as { key: string; value: string }[]} />
+      case 'Matching':
+        return <MatchingContentView pairs={content.pairs as { key: string; value: string }[]} />
       default:
         return <p className="text-xs text-slate-400">{jsonContent}</p>
     }

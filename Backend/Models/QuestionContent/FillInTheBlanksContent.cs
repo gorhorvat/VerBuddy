@@ -1,7 +1,7 @@
-namespace Backend.Models.GameContent;
+namespace Backend.Models.QuestionContent;
 
 /// <summary>
-/// Shape of <see cref="Question.JsonContent"/> for GameType.FillInTheBlanks.
+/// Shape of <see cref="Question.JsonContent"/> for AssignmentType.FillInTheBlanks.
 /// The template uses "___" (three underscores) per blank; Blanks[i] grades the
 /// i-th occurrence. Auto-graded by string match, with teacher manual override
 /// (AttemptStatus.PendingReview) for answers that don't match exactly.

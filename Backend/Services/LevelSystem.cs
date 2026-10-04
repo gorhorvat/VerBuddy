@@ -10,7 +10,7 @@ namespace Backend.Services;
 /// max ~2.1B), the exponential curve makes level ~21 the practical ceiling —
 /// the threshold for level 22 alone already exceeds int.MaxValue. MaxLevel=99
 /// and the overflow-safe clamp in <see cref="ThresholdFor"/> exist purely as a
-/// defensive cap; they are not reachable via ordinary gameplay XP.
+/// defensive cap; they are not reachable via ordinary attempt flow XP.
 /// </summary>
 public static class LevelSystem
 {

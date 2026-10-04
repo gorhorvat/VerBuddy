@@ -11,14 +11,14 @@ using Microsoft.EntityFrameworkCore;
 namespace Backend.Controllers;
 
 /// <summary>
-/// Student portal gameplay: dashboard of active games, start/submit attempt flow
+/// Student portal attempt flow: dashboard of active assignments, start/submit attempt flow
 /// with server-side timer validation, immediate auto-graded feedback and XP.
 /// Everything returned here is pseudonymous and answer-key-free.
 /// </summary>
 [ApiController]
-[Route("api/student/games")]
+[Route("api/student/assignments")]
 [Authorize(Roles = AppRoles.User)]
-public class StudentGamesController(AppDbContext db) : ControllerBase
+public class StudentAssignmentsController(AppDbContext db) : ControllerBase
 {
     private static readonly JsonSerializerOptions JsonOptions =
         new(JsonSerializerDefaults.Web);
@@ -26,22 +26,22 @@ public class StudentGamesController(AppDbContext db) : ControllerBase
     private string StudentId => User.FindFirstValue(ClaimTypes.NameIdentifier)!;
 
     /// <summary>
-    /// Current (Active) and past (Closed) games with the caller's own attempt
-    /// state per game. Drafts stay invisible to students. Visible games are
-    /// General (no category) plus games filed into any class the caller
+    /// Current (Active) and past (Closed) assignments with the caller's own attempt
+    /// state per assignment. Drafts stay invisible to students. Visible assignments are
+    /// General (no category) plus assignments filed into any category the caller
     /// belongs to.
     /// </summary>
     [HttpGet]
-    public async Task<ActionResult<List<StudentGameSummaryDto>>> Dashboard()
+    public async Task<ActionResult<List<StudentAssignmentSummaryDto>>> Dashboard()
     {
         var me = StudentId;
-        var rows = await db.GameInstances
-            .Where(g => g.State == GameState.Active || g.State == GameState.Closed)
+        var rows = await db.Assignments
+            .Where(g => g.State == AssignmentState.Active || g.State == AssignmentState.Closed)
             .Where(g => g.CategoryId == null || g.Category!.Students.Any(s => s.Id == me))
             .OrderByDescending(g => g.CreatedAt)
             .Select(g => new
             {
-                g.Id, g.Title, g.Description, g.GameType, g.State, g.TimeLimitSeconds, g.XpReward,
+                g.Id, g.Title, g.Description, g.AssignmentType, g.State, g.TimeLimitSeconds, g.XpReward,
                 g.CategoryId,
                 CategoryName = g.Category != null ? g.Category.Name : null,
                 QuestionCount = g.Questions.Count,
@@ -52,8 +52,8 @@ public class StudentGamesController(AppDbContext db) : ControllerBase
             })
             .ToListAsync();
 
-        return rows.Select(r => new StudentGameSummaryDto(
-            r.Id, r.Title, r.Description, r.GameType, r.State, r.TimeLimitSeconds, r.XpReward,
+        return rows.Select(r => new StudentAssignmentSummaryDto(
+            r.Id, r.Title, r.Description, r.AssignmentType, r.State, r.TimeLimitSeconds, r.XpReward,
             r.QuestionCount,
             r.Attempt == null ? "NotStarted" : r.Attempt.Status.ToString(),
             r.Attempt?.Score, r.Attempt?.MaxScore, r.Attempt?.EarnedXp,
@@ -67,44 +67,44 @@ public class StudentGamesController(AppDbContext db) : ControllerBase
     [HttpPost("{id:int}/start")]
     public async Task<ActionResult<StartAttemptResponse>> Start(int id)
     {
-        var game = await db.GameInstances
+        var assignment = await db.Assignments
             .Include(g => g.Questions)
-            .FirstOrDefaultAsync(g => g.Id == id && g.State == GameState.Active);
-        if (game is null)
+            .FirstOrDefaultAsync(g => g.Id == id && g.State == AssignmentState.Active);
+        if (assignment is null)
             return NotFound();
 
         var attempt = await db.StudentAttempts
-            .FirstOrDefaultAsync(a => a.GameInstanceId == id && a.StudentId == StudentId);
+            .FirstOrDefaultAsync(a => a.AssignmentId == id && a.StudentId == StudentId);
 
         if (attempt is null)
         {
             attempt = new StudentAttempt
             {
-                GameInstanceId = id,
+                AssignmentId = id,
                 StudentId = StudentId,
-                MaxScore = game.Questions.Sum(q => q.Points)
+                MaxScore = assignment.Questions.Sum(q => q.Points)
             };
             db.StudentAttempts.Add(attempt);
             await db.SaveChangesAsync();
         }
         else if (attempt.Status != AttemptStatus.InProgress)
         {
-            return Conflict(new { message = "You have already completed this game." });
+            return Conflict(new { message = "You have already completed this assignment." });
         }
 
-        var questions = game.Questions
+        var questions = assignment.Questions
             .OrderBy(q => q.Order)
             .Select(q => new StudentQuestionDto(
                 q.Id, q.Order, q.Prompt, q.Points,
-                GradingService.SanitizeForStudent(game.GameType, q.JsonContent)))
+                GradingService.SanitizeForStudent(assignment.AssignmentType, q.JsonContent)))
             .ToList();
 
-        DateTime? deadline = game.IsTimed
-            ? attempt.StartedAt.AddSeconds(game.TimeLimitSeconds!.Value)
+        DateTime? deadline = assignment.IsTimed
+            ? attempt.StartedAt.AddSeconds(assignment.TimeLimitSeconds!.Value)
             : null;
 
         return new StartAttemptResponse(
-            attempt.Id, attempt.StartedAt, game.TimeLimitSeconds, deadline, questions);
+            attempt.Id, attempt.StartedAt, assignment.TimeLimitSeconds, deadline, questions);
     }
 
     /// <summary>
@@ -115,25 +115,25 @@ public class StudentGamesController(AppDbContext db) : ControllerBase
     [HttpPost("{id:int}/submit")]
     public async Task<ActionResult<AttemptResultDto>> Submit(int id, SubmitAttemptRequest request)
     {
-        var game = await db.GameInstances
+        var assignment = await db.Assignments
             .Include(g => g.Questions)
-            .FirstOrDefaultAsync(g => g.Id == id && g.State == GameState.Active);
-        if (game is null)
+            .FirstOrDefaultAsync(g => g.Id == id && g.State == AssignmentState.Active);
+        if (assignment is null)
             return NotFound();
 
         var attempt = await db.StudentAttempts
-            .FirstOrDefaultAsync(a => a.GameInstanceId == id && a.StudentId == StudentId);
+            .FirstOrDefaultAsync(a => a.AssignmentId == id && a.StudentId == StudentId);
         if (attempt is null)
-            return Conflict(new { message = "Start the game before submitting." });
+            return Conflict(new { message = "Start the assignment before submitting." });
         if (attempt.Status != AttemptStatus.InProgress)
             return Conflict(new { message = "This attempt was already submitted." });
 
         attempt.SubmittedAt = DateTime.UtcNow;
         attempt.AnswersJson = JsonSerializer.Serialize(request.Answers, JsonOptions);
-        attempt.MaxScore = game.Questions.Sum(q => q.Points);
+        attempt.MaxScore = assignment.Questions.Sum(q => q.Points);
 
         var elapsedSeconds = (attempt.SubmittedAt.Value - attempt.StartedAt).TotalSeconds;
-        if (game.IsTimed && elapsedSeconds > game.TimeLimitSeconds!.Value + GradingService.GraceSeconds)
+        if (assignment.IsTimed && elapsedSeconds > assignment.TimeLimitSeconds!.Value + GradingService.GraceSeconds)
         {
             // Payload arrived outside the allowed window: keep the answers for
             // teacher inspection but award nothing.
@@ -148,21 +148,21 @@ public class StudentGamesController(AppDbContext db) : ControllerBase
                 answersByQuestion[answer.QuestionId] = answer.Answer;
 
             var score = 0;
-            foreach (var question in game.Questions)
+            foreach (var question in assignment.Questions)
             {
                 JsonElement? answer = answersByQuestion.TryGetValue(question.Id, out var a) ? a : null;
-                score += GradingService.Grade(game.GameType, question.JsonContent, answer, question.Points);
+                score += GradingService.Grade(assignment.AssignmentType, question.JsonContent, answer, question.Points);
             }
 
             attempt.Score = score;
-            // The game's RequireFeedback toggle decides grading mode: manual games
+            // The assignment's RequireFeedback toggle decides grading mode: manual assignments
             // park every attempt for teacher review; otherwise the auto grade is final.
-            attempt.Status = game.RequireFeedback
+            attempt.Status = assignment.RequireFeedback
                 ? AttemptStatus.PendingReview
                 : AttemptStatus.Completed;
             attempt.EarnedXp = attempt.MaxScore == 0
                 ? 0
-                : (int)Math.Round(game.XpReward * (double)score / attempt.MaxScore);
+                : (int)Math.Round(assignment.XpReward * (double)score / attempt.MaxScore);
 
             var student = (await db.Users.FindAsync(StudentId))!;
             student.TotalXp += attempt.EarnedXp;
@@ -175,12 +175,12 @@ public class StudentGamesController(AppDbContext db) : ControllerBase
             attempt.EarnedXp, attempt.SubmittedAt, attempt.TeacherFeedback);
     }
 
-    /// <summary>The caller's own finalized result for a game (e.g. after teacher review).</summary>
+    /// <summary>The caller's own finalized result for an assignment (e.g. after teacher review).</summary>
     [HttpGet("{id:int}/result")]
     public async Task<ActionResult<AttemptResultDto>> Result(int id)
     {
         var attempt = await db.StudentAttempts
-            .FirstOrDefaultAsync(a => a.GameInstanceId == id &&
+            .FirstOrDefaultAsync(a => a.AssignmentId == id &&
                                       a.StudentId == StudentId &&
                                       a.Status != AttemptStatus.InProgress);
         if (attempt is null)
@@ -201,21 +201,21 @@ public class StudentGamesController(AppDbContext db) : ControllerBase
     public async Task<ActionResult<MyAnswersDto>> MyAnswers(int id)
     {
         var attempt = await db.StudentAttempts
-            .Include(a => a.GameInstance).ThenInclude(g => g.Questions)
-            .FirstOrDefaultAsync(a => a.GameInstanceId == id &&
+            .Include(a => a.Assignment).ThenInclude(g => g.Questions)
+            .FirstOrDefaultAsync(a => a.AssignmentId == id &&
                                       a.StudentId == StudentId &&
                                       a.Status != AttemptStatus.InProgress);
         if (attempt is null)
             return NotFound();
 
-        var game = attempt.GameInstance;
+        var assignment = attempt.Assignment;
         var answers = GradingService.ParseAnswers(attempt.AnswersJson);
         var overrides = GradingService.ParseOverrides(attempt.OverridesJson);
 
-        var breakdown = game.Questions.OrderBy(q => q.Order).Select(q =>
+        var breakdown = assignment.Questions.OrderBy(q => q.Order).Select(q =>
         {
             JsonElement? answer = answers.TryGetValue(q.Id, out var a) ? a : null;
-            var auto = GradingService.Grade(game.GameType, q.JsonContent, answer, q.Points);
+            var auto = GradingService.Grade(assignment.AssignmentType, q.JsonContent, answer, q.Points);
             var isOverridden = overrides.TryGetValue(q.Id, out var final);
             return new AnswerBreakdownDto(
                 q.Id, q.Order, q.Prompt, q.Points, q.JsonContent,
@@ -223,7 +223,7 @@ public class StudentGamesController(AppDbContext db) : ControllerBase
         }).ToList();
 
         return new MyAnswersDto(
-            game.Id, game.Title, game.GameType,
+            assignment.Id, assignment.Title, assignment.AssignmentType,
             new AttemptResultDto(
                 attempt.Id, attempt.Status, attempt.Score, attempt.MaxScore,
                 attempt.EarnedXp, attempt.SubmittedAt, attempt.TeacherFeedback),

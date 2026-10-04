@@ -11,7 +11,7 @@ namespace Backend.Controllers;
 
 /// <summary>
 /// Teacher-only attempt monitoring and manual grade override (primarily for
-/// fill-in-the-blanks answers in PendingReview). Scoped to the teacher's own games.
+/// fill-in-the-blanks answers in PendingReview). Scoped to the teacher's own assignments.
 /// </summary>
 [ApiController]
 [Route("api/admin/attempts")]
@@ -20,22 +20,22 @@ public class AdminAttemptsController(AppDbContext db) : ControllerBase
 {
     private string TeacherId => User.FindFirstValue(ClaimTypes.NameIdentifier)!;
 
-    /// <summary>Attempts across the teacher's games; filter by game and/or pending review.</summary>
+    /// <summary>Attempts across the teacher's assignments; filter by assignment and/or pending review.</summary>
     [HttpGet]
     public async Task<ActionResult<List<AttemptAdminDto>>> List(
-        [FromQuery] int? gameId, [FromQuery] bool pendingOnly = false)
+        [FromQuery] int? assignmentId, [FromQuery] bool pendingOnly = false)
     {
         var query = db.StudentAttempts
-            .Where(a => a.GameInstance.CreatedByTeacherId == TeacherId);
-        if (gameId is not null)
-            query = query.Where(a => a.GameInstanceId == gameId);
+            .Where(a => a.Assignment.CreatedByTeacherId == TeacherId);
+        if (assignmentId is not null)
+            query = query.Where(a => a.AssignmentId == assignmentId);
         if (pendingOnly)
             query = query.Where(a => a.Status == AttemptStatus.PendingReview);
 
         return await query
             .OrderByDescending(a => a.StartedAt)
             .Select(a => new AttemptAdminDto(
-                a.Id, a.GameInstanceId, a.GameInstance.Title, a.GameInstance.GameType,
+                a.Id, a.AssignmentId, a.Assignment.Title, a.Assignment.AssignmentType,
                 a.Student.DisplayName, a.Student.FirstName, a.Student.LastName,
                 a.Status, a.Score, a.MaxScore, a.EarnedXp,
                 a.StartedAt, a.SubmittedAt, a.AnswersJson, a.TeacherFeedback))
@@ -51,19 +51,19 @@ public class AdminAttemptsController(AppDbContext db) : ControllerBase
     public async Task<ActionResult<AttemptAdminDto>> OverrideAnswer(int id, OverrideAnswerRequest request)
     {
         var attempt = await db.StudentAttempts
-            .Include(a => a.GameInstance).ThenInclude(g => g.Questions)
+            .Include(a => a.Assignment).ThenInclude(g => g.Questions)
             .Include(a => a.Student)
             .FirstOrDefaultAsync(a => a.Id == id &&
-                                      a.GameInstance.CreatedByTeacherId == TeacherId);
+                                      a.Assignment.CreatedByTeacherId == TeacherId);
         if (attempt is null)
             return NotFound();
 
         if (attempt.Status is AttemptStatus.InProgress or AttemptStatus.Invalidated)
             return Conflict(new { message = $"An attempt in state '{attempt.Status}' cannot be adjusted." });
 
-        var question = attempt.GameInstance.Questions.FirstOrDefault(q => q.Id == request.QuestionId);
+        var question = attempt.Assignment.Questions.FirstOrDefault(q => q.Id == request.QuestionId);
         if (question is null)
-            return NotFound(new { message = "That question does not belong to this game." });
+            return NotFound(new { message = "That question does not belong to this assignment." });
         if (request.Points > question.Points)
             return BadRequest(new { message = $"Points cannot exceed the question maximum of {question.Points}." });
 
@@ -73,19 +73,19 @@ public class AdminAttemptsController(AppDbContext db) : ControllerBase
 
         // Recompute the whole attempt from auto grades + overrides.
         var answers = GradingService.ParseAnswers(attempt.AnswersJson);
-        attempt.Score = attempt.GameInstance.Questions
-            .Sum(q => GradingService.FinalPoints(q, attempt.GameInstance.GameType, answers, overrides));
+        attempt.Score = attempt.Assignment.Questions
+            .Sum(q => GradingService.FinalPoints(q, attempt.Assignment.AssignmentType, answers, overrides));
 
         var newXp = attempt.MaxScore == 0
             ? 0
-            : (int)Math.Round(attempt.GameInstance.XpReward * (double)attempt.Score / attempt.MaxScore);
+            : (int)Math.Round(attempt.Assignment.XpReward * (double)attempt.Score / attempt.MaxScore);
         attempt.Student.TotalXp += newXp - attempt.EarnedXp;
         attempt.EarnedXp = newXp;
 
         await db.SaveChangesAsync();
 
         return new AttemptAdminDto(
-            attempt.Id, attempt.GameInstanceId, attempt.GameInstance.Title, attempt.GameInstance.GameType,
+            attempt.Id, attempt.AssignmentId, attempt.Assignment.Title, attempt.Assignment.AssignmentType,
             attempt.Student.DisplayName, attempt.Student.FirstName, attempt.Student.LastName,
             attempt.Status, attempt.Score, attempt.MaxScore, attempt.EarnedXp,
             attempt.StartedAt, attempt.SubmittedAt, attempt.AnswersJson, attempt.TeacherFeedback);
@@ -100,10 +100,10 @@ public class AdminAttemptsController(AppDbContext db) : ControllerBase
     public async Task<ActionResult<AttemptAdminDto>> Review(int id, ReviewAttemptRequest request)
     {
         var attempt = await db.StudentAttempts
-            .Include(a => a.GameInstance)
+            .Include(a => a.Assignment)
             .Include(a => a.Student)
             .FirstOrDefaultAsync(a => a.Id == id &&
-                                      a.GameInstance.CreatedByTeacherId == TeacherId);
+                                      a.Assignment.CreatedByTeacherId == TeacherId);
         if (attempt is null)
             return NotFound();
 
@@ -119,14 +119,14 @@ public class AdminAttemptsController(AppDbContext db) : ControllerBase
 
         var newXp = attempt.MaxScore == 0
             ? 0
-            : (int)Math.Round(attempt.GameInstance.XpReward * (double)request.Score / attempt.MaxScore);
+            : (int)Math.Round(attempt.Assignment.XpReward * (double)request.Score / attempt.MaxScore);
         attempt.Student.TotalXp += newXp - attempt.EarnedXp;
         attempt.EarnedXp = newXp;
 
         await db.SaveChangesAsync();
 
         return new AttemptAdminDto(
-            attempt.Id, attempt.GameInstanceId, attempt.GameInstance.Title, attempt.GameInstance.GameType,
+            attempt.Id, attempt.AssignmentId, attempt.Assignment.Title, attempt.Assignment.AssignmentType,
             attempt.Student.DisplayName, attempt.Student.FirstName, attempt.Student.LastName,
             attempt.Status, attempt.Score, attempt.MaxScore, attempt.EarnedXp,
             attempt.StartedAt, attempt.SubmittedAt, attempt.AnswersJson, attempt.TeacherFeedback);

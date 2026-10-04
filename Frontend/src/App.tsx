@@ -6,13 +6,13 @@ import ChangePasswordPage from './pages/ChangePasswordPage'
 import ResetPasswordPage from './pages/ResetPasswordPage'
 import Leaderboard from './pages/Leaderboard'
 import StudentDashboard from './pages/student/StudentDashboard'
-import PlayGame from './pages/student/PlayGame'
+import TakeAssignment from './pages/student/TakeAssignment'
 import AnswerReview from './pages/student/AnswerReview'
 import Rewards from './pages/student/Rewards'
 import RewardsAdmin from './pages/teacher/RewardsAdmin'
-import TeacherGames from './pages/teacher/TeacherGames'
-import GameEditor from './pages/teacher/GameEditor'
-import GameAnswers from './pages/teacher/GameAnswers'
+import TeacherAssignments from './pages/teacher/TeacherAssignments'
+import AssignmentEditor from './pages/teacher/AssignmentEditor'
+import AssignmentAnswers from './pages/teacher/AssignmentAnswers'
 import Reviews from './pages/teacher/Reviews'
 import Students from './pages/teacher/Students'
 import Admins from './pages/superadmin/Admins'
@@ -42,22 +42,22 @@ function AppRoutes() {
         <Route path="/leaderboard" element={<Leaderboard />} />
         {isAdmin ? (
           <>
-            <Route path="/teacher/games" element={<TeacherGames />} />
-            <Route path="/teacher/games/:id" element={<GameEditor />} />
-            <Route path="/teacher/games/:id/answers" element={<GameAnswers />} />
+            <Route path="/teacher/assignments" element={<TeacherAssignments />} />
+            <Route path="/teacher/assignments/:id" element={<AssignmentEditor />} />
+            <Route path="/teacher/assignments/:id/answers" element={<AssignmentAnswers />} />
             <Route path="/teacher/reviews" element={<Reviews />} />
             <Route path="/teacher/students" element={<Students />} />
             <Route path="/teacher/rewards" element={<RewardsAdmin />} />
             {isSuperAdmin && <Route path="/superadmin/admins" element={<Admins />} />}
-            <Route path="*" element={<Navigate to="/teacher/games" replace />} />
+            <Route path="*" element={<Navigate to="/teacher/assignments" replace />} />
           </>
         ) : (
           <>
-            <Route path="/games" element={<StudentDashboard />} />
-            <Route path="/games/:id/play" element={<PlayGame />} />
-            <Route path="/games/:id/answers" element={<AnswerReview />} />
+            <Route path="/assignments" element={<StudentDashboard />} />
+            <Route path="/assignments/:id/take" element={<TakeAssignment />} />
+            <Route path="/assignments/:id/answers" element={<AnswerReview />} />
             <Route path="/rewards" element={<Rewards />} />
-            <Route path="*" element={<Navigate to="/games" replace />} />
+            <Route path="*" element={<Navigate to="/assignments" replace />} />
           </>
         )}
       </Route>

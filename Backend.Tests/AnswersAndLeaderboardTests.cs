@@ -12,14 +12,14 @@ public class AnswersAndLeaderboardTests(ApiFactory factory)
     public async Task TeacherAnswersView_ShowsPerQuestionBreakdown()
     {
         using var teacher = await factory.TeacherClientAsync();
-        var game = await teacher.CreateSingleChoiceGameAsync();
+        var assignment = await teacher.CreateSingleChoiceAssignmentAsync();
         var student = await factory.CreateActivatedStudentAsync(teacher);
         using var client = await factory.StudentClientAsync(student);
-        var start = await client.StartAsync(game.Id);
-        await client.SubmitAsync(game.Id, start.Questions[0].Id, new { selectedIndex = 0 }); // Wrong.
+        var start = await client.StartAsync(assignment.Id);
+        await client.SubmitAsync(assignment.Id, start.Questions[0].Id, new { selectedIndex = 0 }); // Wrong.
 
-        var answers = (await teacher.GetFromJsonAsync<GameAnswersDto>(
-            $"/api/admin/games/{game.Id}/answers", Json))!;
+        var answers = (await teacher.GetFromJsonAsync<AssignmentAnswersDto>(
+            $"/api/admin/assignments/{assignment.Id}/answers", Json))!;
 
         var attempt = Assert.Single(answers.Attempts);
         Assert.Equal(student.DisplayName, attempt.StudentDisplayName);
@@ -34,25 +34,25 @@ public class AnswersAndLeaderboardTests(ApiFactory factory)
     public async Task StudentAnswerReview_RequiresFinalizedAttempt_ThenShowsKey()
     {
         using var teacher = await factory.TeacherClientAsync();
-        var game = await teacher.CreateSingleChoiceGameAsync();
+        var assignment = await teacher.CreateSingleChoiceAssignmentAsync();
         var student = await factory.CreateActivatedStudentAsync(teacher);
         using var client = await factory.StudentClientAsync(student);
 
         // In progress -> no review yet.
-        var start = await client.StartAsync(game.Id);
-        var whileInProgress = await client.GetAsync($"/api/student/games/{game.Id}/answers");
+        var start = await client.StartAsync(assignment.Id);
+        var whileInProgress = await client.GetAsync($"/api/student/assignments/{assignment.Id}/answers");
         Assert.Equal(HttpStatusCode.NotFound, whileInProgress.StatusCode);
 
-        await client.SubmitAsync(game.Id, start.Questions[0].Id, new { selectedIndex = 0 });
+        await client.SubmitAsync(assignment.Id, start.Questions[0].Id, new { selectedIndex = 0 });
 
         var review = (await client.GetFromJsonAsync<MyAnswersDto>(
-            $"/api/student/games/{game.Id}/answers", Json))!;
+            $"/api/student/assignments/{assignment.Id}/answers", Json))!;
         var breakdown = Assert.Single(review.Answers);
         Assert.Contains("correctIndex", breakdown.ContentJson); // Correct answer visible now.
         Assert.Equal(0, breakdown.FinalPoints);
 
         // Students cannot see other people's breakdowns via the admin route.
-        var adminRoute = await client.GetAsync($"/api/admin/games/{game.Id}/answers");
+        var adminRoute = await client.GetAsync($"/api/admin/assignments/{assignment.Id}/answers");
         Assert.Equal(HttpStatusCode.Forbidden, adminRoute.StatusCode);
     }
 
@@ -60,17 +60,17 @@ public class AnswersAndLeaderboardTests(ApiFactory factory)
     public async Task StudentReview_ShowsTeacherOverride()
     {
         using var teacher = await factory.TeacherClientAsync();
-        var game = await teacher.CreateSingleChoiceGameAsync(xpReward: 10);
+        var assignment = await teacher.CreateSingleChoiceAssignmentAsync(xpReward: 10);
         var student = await factory.CreateActivatedStudentAsync(teacher);
         using var client = await factory.StudentClientAsync(student);
-        var start = await client.StartAsync(game.Id);
-        var result = await client.SubmitAsync(game.Id, start.Questions[0].Id, new { selectedIndex = 0 });
+        var start = await client.StartAsync(assignment.Id);
+        var result = await client.SubmitAsync(assignment.Id, start.Questions[0].Id, new { selectedIndex = 0 });
 
         await teacher.PostAsJsonAsync($"/api/admin/attempts/{result.AttemptId}/override-answer",
-            new { questionId = game.Questions.Single().Id, points = 1 }, Json);
+            new { questionId = assignment.Questions.Single().Id, points = 1 }, Json);
 
         var review = (await client.GetFromJsonAsync<MyAnswersDto>(
-            $"/api/student/games/{game.Id}/answers", Json))!;
+            $"/api/student/assignments/{assignment.Id}/answers", Json))!;
         var breakdown = Assert.Single(review.Answers);
         Assert.True(breakdown.IsOverridden);
         Assert.Equal(1, breakdown.FinalPoints);
@@ -83,26 +83,26 @@ public class AnswersAndLeaderboardTests(ApiFactory factory)
     {
         using var teacher = await factory.TeacherClientAsync();
         var categoryResponse = await teacher.PostAsJsonAsync("/api/admin/categories",
-            new { name = Unique("Class") }, Json);
+            new { name = Unique("Category") }, Json);
         var category = (await categoryResponse.Content.ReadFromJsonAsync<CategoryDto>(Json))!;
 
-        var inClass = await factory.CreateActivatedStudentAsync(teacher, [category.Id]);
+        var inCategory = await factory.CreateActivatedStudentAsync(teacher, [category.Id]);
         var outsider = await factory.CreateActivatedStudentAsync(teacher);
 
-        using var inClassClient = await factory.StudentClientAsync(inClass);
-        var boards = (await inClassClient.GetFromJsonAsync<LeaderboardResponse>("/api/leaderboard", Json))!;
+        using var inCategoryClient = await factory.StudentClientAsync(inCategory);
+        var boards = (await inCategoryClient.GetFromJsonAsync<LeaderboardResponse>("/api/leaderboard", Json))!;
 
-        var classBoard = Assert.Single(boards.Classes);
-        Assert.Equal(category.Name, classBoard.Name);
-        Assert.Contains(classBoard.Entries, e => e.DisplayName == inClass.DisplayName);
-        Assert.DoesNotContain(classBoard.Entries, e => e.DisplayName == outsider.DisplayName);
-        Assert.Contains(boards.GlobalEntries, e => e.DisplayName == inClass.DisplayName);
+        var categoryBoard = Assert.Single(boards.Categories);
+        Assert.Equal(category.Name, categoryBoard.Name);
+        Assert.Contains(categoryBoard.Entries, e => e.DisplayName == inCategory.DisplayName);
+        Assert.DoesNotContain(categoryBoard.Entries, e => e.DisplayName == outsider.DisplayName);
+        Assert.Contains(boards.GlobalEntries, e => e.DisplayName == inCategory.DisplayName);
         Assert.Contains(boards.GlobalEntries, e => e.DisplayName == outsider.DisplayName);
 
-        // A student with no class gets an empty list of class boards.
+        // A student with no category gets an empty list of category boards.
         using var outsiderClient = await factory.StudentClientAsync(outsider);
         var outsiderBoards = (await outsiderClient.GetFromJsonAsync<LeaderboardResponse>("/api/leaderboard", Json))!;
-        Assert.Empty(outsiderBoards.Classes);
+        Assert.Empty(outsiderBoards.Categories);
     }
 
     [Fact]
@@ -125,33 +125,33 @@ public class AnswersAndLeaderboardTests(ApiFactory factory)
     {
         using var teacher = await factory.TeacherClientAsync();
         var categoryA = (await (await teacher.PostAsJsonAsync("/api/admin/categories",
-            new { name = Unique("Class") }, Json)).Content.ReadFromJsonAsync<CategoryDto>(Json))!;
+            new { name = Unique("Category") }, Json)).Content.ReadFromJsonAsync<CategoryDto>(Json))!;
         var categoryB = (await (await teacher.PostAsJsonAsync("/api/admin/categories",
-            new { name = Unique("Class") }, Json)).Content.ReadFromJsonAsync<CategoryDto>(Json))!;
+            new { name = Unique("Category") }, Json)).Content.ReadFromJsonAsync<CategoryDto>(Json))!;
 
         var student = await factory.CreateActivatedStudentAsync(teacher, [categoryA.Id, categoryB.Id]);
 
         using var client = await factory.StudentClientAsync(student);
         var boards = (await client.GetFromJsonAsync<LeaderboardResponse>("/api/leaderboard", Json))!;
 
-        Assert.Equal(2, boards.Classes.Count);
-        Assert.Contains(boards.Classes, c => c.Id == categoryA.Id);
-        Assert.Contains(boards.Classes, c => c.Id == categoryB.Id);
-        Assert.All(boards.Classes, c => Assert.Contains(c.Entries, e => e.DisplayName == student.DisplayName));
+        Assert.Equal(2, boards.Categories.Count);
+        Assert.Contains(boards.Categories, c => c.Id == categoryA.Id);
+        Assert.Contains(boards.Categories, c => c.Id == categoryB.Id);
+        Assert.All(boards.Categories, c => Assert.Contains(c.Entries, e => e.DisplayName == student.DisplayName));
     }
 
     [Fact]
-    public async Task GamesList_IncludesAttempterDisplayNames()
+    public async Task AssignmentsList_IncludesAttempterDisplayNames()
     {
         using var teacher = await factory.TeacherClientAsync();
-        var game = await teacher.CreateSingleChoiceGameAsync();
+        var assignment = await teacher.CreateSingleChoiceAssignmentAsync();
         var student = await factory.CreateActivatedStudentAsync(teacher);
         using var client = await factory.StudentClientAsync(student);
-        var start = await client.StartAsync(game.Id);
-        await client.SubmitAsync(game.Id, start.Questions[0].Id, new { selectedIndex = 1 });
+        var start = await client.StartAsync(assignment.Id);
+        await client.SubmitAsync(assignment.Id, start.Questions[0].Id, new { selectedIndex = 1 });
 
-        var list = (await teacher.GetFromJsonAsync<List<GameSummaryDto>>("/api/admin/games", Json))!;
-        var summary = list.Single(g => g.Id == game.Id);
+        var list = (await teacher.GetFromJsonAsync<List<AssignmentSummaryDto>>("/api/admin/assignments", Json))!;
+        var summary = list.Single(g => g.Id == assignment.Id);
 
         Assert.Contains(student.DisplayName, summary.AttemptDisplayNames);
     }

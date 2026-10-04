@@ -127,10 +127,10 @@ public class AccountFlowTests(ApiFactory factory)
 
         // Account with history: refused, deactivation is the path.
         var veteran = await factory.CreateActivatedStudentAsync(teacher);
-        var game = await teacher.CreateSingleChoiceGameAsync();
+        var assignment = await teacher.CreateSingleChoiceAssignmentAsync();
         using var client = await factory.StudentClientAsync(veteran);
-        var start = await client.StartAsync(game.Id);
-        await client.SubmitAsync(game.Id, start.Questions[0].Id, new { selectedIndex = 1 });
+        var start = await client.StartAsync(assignment.Id);
+        await client.SubmitAsync(assignment.Id, start.Questions[0].Id, new { selectedIndex = 1 });
 
         var deleteVeteran = await teacher.DeleteAsync($"/api/admin/students/{veteran.Id}");
         Assert.Equal(HttpStatusCode.Conflict, deleteVeteran.StatusCode);

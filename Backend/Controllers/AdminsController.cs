@@ -144,7 +144,7 @@ public class AdminsController(
     }
 
     /// <summary>
-    /// Hard delete. Safe for admins: games/categories/attempts carry no
+    /// Hard delete. Safe for admins: assignments/categories/attempts carry no
     /// ownership FK to admin users, so nothing is orphaned.
     /// </summary>
     [HttpDelete("{id}")]

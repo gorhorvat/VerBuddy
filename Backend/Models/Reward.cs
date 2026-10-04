@@ -12,7 +12,7 @@ public enum RewardApplicationStatus
 
 /// <summary>
 /// A global, teacher-defined reward unlocked once a student reaches
-/// <see cref="RequiredLevel"/>. Visible to every student (not filed by class).
+/// <see cref="RequiredLevel"/>. Visible to every student (not filed by category).
 /// </summary>
 public class Reward
 {

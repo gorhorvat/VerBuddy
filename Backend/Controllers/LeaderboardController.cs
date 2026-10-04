@@ -11,7 +11,7 @@ namespace Backend.Controllers;
 
 /// <summary>
 /// Classroom leaderboards, visible to every authenticated user: one board per
-/// class (category) the caller belongs to, plus the global board across all
+/// category the caller belongs to, plus the global board across all
 /// students. Renders exclusively DisplayName + TotalXp — real names and
 /// emails never appear here by construction (LeaderboardEntryDto has no PII
 /// fields).
@@ -34,8 +34,8 @@ public class LeaderboardController(
 
         var global = Rank(students);
 
-        // One board per class the caller belongs to (admins/students with no
-        // classes get an empty list).
+        // One board per category the caller belongs to (admins/students with no
+        // categories get an empty list).
         var me = await db.Users
             .Include(u => u.Categories)
             .FirstAsync(u => u.Id == User.FindFirstValue(ClaimTypes.NameIdentifier));
@@ -45,14 +45,14 @@ public class LeaderboardController(
             .Select(u => new { u.Id, CategoryIds = u.Categories.Select(c => c.Id).ToList() })
             .ToDictionaryAsync(x => x.Id, x => x.CategoryIds);
 
-        var classes = me.Categories
+        var categories = me.Categories
             .OrderBy(c => c.Name)
-            .Select(c => new ClassBoardDto(
+            .Select(c => new CategoryBoardDto(
                 c.Id, c.Name,
                 Rank(students.Where(s => studentCategoryIds.GetValueOrDefault(s.Id, []).Contains(c.Id)))))
             .ToList();
 
-        return new LeaderboardResponse(classes, global);
+        return new LeaderboardResponse(categories, global);
     }
 
     private static List<LeaderboardEntryDto> Rank(IEnumerable<ApplicationUser> students) =>

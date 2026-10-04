@@ -1,7 +1,7 @@
-namespace Backend.Models.GameContent;
+namespace Backend.Models.QuestionContent;
 
 /// <summary>
-/// Shape of <see cref="Question.JsonContent"/> for GameType.SingleChoice.
+/// Shape of <see cref="Question.JsonContent"/> for AssignmentType.SingleChoice.
 /// Example: { "choices": ["go", "goes", "going"], "correctIndex": 1 }
 /// </summary>
 public sealed class SingleChoiceContent
@@ -13,7 +13,7 @@ public sealed class SingleChoiceContent
 }
 
 /// <summary>
-/// Shape of <see cref="Question.JsonContent"/> for GameType.MultipleChoice.
+/// Shape of <see cref="Question.JsonContent"/> for AssignmentType.MultipleChoice.
 /// Example: { "choices": ["cat", "dog", "table", "run"], "correctIndexes": [0, 1] }
 /// </summary>
 public sealed class MultipleChoiceContent

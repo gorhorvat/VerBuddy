@@ -16,7 +16,7 @@ public sealed record CreateStudentRequest(
     [EmailAddress, MaxLength(256)] string? Email,
     /// <summary>Optional nickname; a unique one is generated when omitted.</summary>
     [MaxLength(32)] string? DisplayName,
-    /// <summary>The student's classes; null or empty = unassigned.</summary>
+    /// <summary>The student's categories; null or empty = unassigned.</summary>
     List<int>? CategoryIds);
 
 public sealed record UpdateStudentRequest(
@@ -24,7 +24,7 @@ public sealed record UpdateStudentRequest(
     [MaxLength(100)] string? LastName,
     [EmailAddress, MaxLength(256)] string? Email,
     [MaxLength(32)] string? DisplayName,
-    /// <summary>The student's classes; null or empty = no classes.</summary>
+    /// <summary>The student's categories; null or empty = none.</summary>
     List<int>? CategoryIds);
 
 /// <summary>Minimal category reference for embedding in student payloads.</summary>

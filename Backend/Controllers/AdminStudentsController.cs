@@ -103,7 +103,7 @@ public class AdminStudentsController(
         return new ImportStudentsResult(created, errors);
     }
 
-    /// <summary>Updates PII, nickname (uniqueness enforced) and class assignments.</summary>
+    /// <summary>Updates PII, nickname (uniqueness enforced) and category memberships.</summary>
     [HttpPut("{id}")]
     public async Task<ActionResult<StudentAdminDto>> Update(string id, UpdateStudentRequest request)
     {
@@ -111,8 +111,8 @@ public class AdminStudentsController(
         if (student is null)
             return NotFound();
 
-        // Admins may only file students into their own classes; SuperAdmin
-        // into any. "Unknown category." for both so foreign class ids don't
+        // Admins may only file students into their own categories; SuperAdmin
+        // into any. "Unknown category." for both so foreign category ids don't
         // leak their existence.
         if (!await ValidCategoryIdsAsync(request.CategoryIds))
             return BadRequest(new { message = "Unknown category." });
@@ -284,7 +284,7 @@ public class AdminStudentsController(
 
     /// <summary>
     /// Every id must exist and (SuperAdmin → any category; Admin → only their
-    /// own). Null/empty is always valid (no classes).
+    /// own). Null/empty is always valid (no categories).
     /// </summary>
     private async Task<bool> ValidCategoryIdsAsync(List<int>? categoryIds)
     {

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { api, type AttemptResult, type GameType, type StartAttempt } from '../../api'
+import { api, type AttemptResult, type AssignmentType, type StartAttempt } from '../../api'
 import { useAuth } from '../../auth'
 import { levelForXp } from '../../lib/levels'
 import { Button, Card, ErrorText, Spinner } from '../../components/ui'
@@ -9,23 +9,23 @@ import {
   FillInTheBlanksInput,
   MultipleChoiceInput,
   SingleChoiceInput,
-  WordMatchingInput,
-} from '../../components/GameInputs'
+  MatchingInput,
+} from '../../components/AnswerInputs'
 
-const inputByType: Record<GameType, typeof SingleChoiceInput> = {
+const inputByType: Record<AssignmentType, typeof SingleChoiceInput> = {
   SingleChoice: SingleChoiceInput,
   MultipleChoice: MultipleChoiceInput,
   FillInTheBlanks: FillInTheBlanksInput,
-  WordMatching: WordMatchingInput,
+  Matching: MatchingInput,
 }
 
-/** The game type travels via the dashboard link state-free: we re-read it from the list. */
-function useGameType(id: string): GameType | null {
-  const [type, setType] = useState<GameType | null>(null)
+/** The assignment type travels via the dashboard link state-free: we re-read it from the list. */
+function useAssignmentType(id: string): AssignmentType | null {
+  const [type, setType] = useState<AssignmentType | null>(null)
   useEffect(() => {
-    api<{ id: number; gameType: GameType }[]>('/api/student/games').then((games) => {
-      const game = games.find((g) => g.id === Number(id))
-      if (game) setType(game.gameType)
+    api<{ id: number; assignmentType: AssignmentType }[]>('/api/student/assignments').then((assignments) => {
+      const assignment = assignments.find((g) => g.id === Number(id))
+      if (assignment) setType(assignment.assignmentType)
     })
   }, [id])
   return type
@@ -73,9 +73,9 @@ function CountdownBar({ deadline, total, onExpire }: { deadline: string; total: 
   )
 }
 
-export default function PlayGame() {
+export default function TakeAssignment() {
   const { id } = useParams() as { id: string }
-  const gameType = useGameType(id)
+  const assignmentType = useAssignmentType(id)
   const { user, refreshMe } = useAuth()
   const [start, setStart] = useState<StartAttempt | null>(null)
   const [answers, setAnswers] = useState<Record<number, unknown>>({})
@@ -91,7 +91,7 @@ export default function PlayGame() {
     // re-runs the effect in dev; the ref survives the remount cycle.
     if (startRequestedForRef.current === id) return
     startRequestedForRef.current = id
-    api<StartAttempt>(`/api/student/games/${id}/start`, { method: 'POST' })
+    api<StartAttempt>(`/api/student/assignments/${id}/start`, { method: 'POST' })
       .then(setStart)
       .catch((e) => setError(e.message))
   }, [id])
@@ -107,9 +107,9 @@ export default function PlayGame() {
           answer,
         })),
       }
-      const res = await api<AttemptResult>(`/api/student/games/${id}/submit`, { method: 'POST', body: payload })
+      const res = await api<AttemptResult>(`/api/student/assignments/${id}/submit`, { method: 'POST', body: payload })
       if (res.earnedXp > 0 && user) {
-        // The stored totalXp is the pre-game value, so old vs new level can be
+        // The stored totalXp is the pre-assignment value, so old vs new level can be
         // computed locally before refreshMe() overwrites it with fresh data.
         const oldLevel = levelForXp(user.totalXp)
         const newLevel = levelForXp(user.totalXp + res.earnedXp)
@@ -131,7 +131,7 @@ export default function PlayGame() {
     return (
       <div className="space-y-3">
         <ErrorText message={error} />
-        <Link to="/games" className="text-sm font-semibold text-indigo-600">← Back to games</Link>
+        <Link to="/assignments" className="text-sm font-semibold text-indigo-600">← Back to assignments</Link>
       </div>
     )
   }
@@ -169,7 +169,7 @@ export default function PlayGame() {
           </>
         )}
           <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
-            <Link to="/games"><Button variant="secondary" className="w-full sm:w-auto">Back to games</Button></Link>
+            <Link to="/assignments"><Button variant="secondary" className="w-full sm:w-auto">Back to assignments</Button></Link>
             <Link to="/leaderboard"><Button className="w-full sm:w-auto">View leaderboard</Button></Link>
           </div>
         </Card>
@@ -177,9 +177,9 @@ export default function PlayGame() {
     )
   }
 
-  if (!start || !gameType) return <Spinner />
+  if (!start || !assignmentType) return <Spinner />
 
-  const AnswerInput = inputByType[gameType]
+  const AnswerInput = inputByType[assignmentType]
   const answeredCount = Object.keys(answers).length
 
   return (

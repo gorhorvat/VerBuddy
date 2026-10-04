@@ -5,7 +5,7 @@ using Backend.Models;
 namespace Backend.DTOs;
 
 // ─── Per-question answer breakdowns ────────────────────────────────────────
-// Shared by the teacher's per-game answers view and the student's read-only
+// Shared by the teacher's per-assignment answers view and the student's read-only
 // review. ContentJson is the FULL question content including the answer key,
 // so these DTOs must only ever be returned for finalized attempts (student)
 // or to the teacher.
@@ -21,11 +21,11 @@ public sealed record AnswerBreakdownDto(
     int FinalPoints,
     bool IsOverridden);
 
-/// <summary>Teacher view: one game, all attempts, every answer.</summary>
-public sealed record GameAnswersDto(
-    int GameId,
+/// <summary>Teacher view: one assignment, all attempts, every answer.</summary>
+public sealed record AssignmentAnswersDto(
+    int AssignmentId,
     string Title,
-    GameType GameType,
+    AssignmentType AssignmentType,
     int XpReward,
     List<AttemptAnswersDto> Attempts);
 
@@ -43,9 +43,9 @@ public sealed record AttemptAnswersDto(
 
 /// <summary>Student view: their own finalized attempt with the answer key.</summary>
 public sealed record MyAnswersDto(
-    int GameId,
+    int AssignmentId,
     string Title,
-    GameType GameType,
+    AssignmentType AssignmentType,
     AttemptResultDto Result,
     List<AnswerBreakdownDto> Answers);
 

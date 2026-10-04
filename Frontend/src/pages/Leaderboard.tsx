@@ -35,7 +35,7 @@ function Board({ entries, myName }: { entries: LeaderboardEntry[]; myName?: stri
   )
 }
 
-/** Class + global rankings — nicknames and XP only (GDPR-safe by design). */
+/** Category + global rankings — nicknames and XP only (GDPR-safe by design). */
 export default function Leaderboard() {
   const { user } = useAuth()
   const [data, setData] = useState<Leaderboards | null>(null)
@@ -46,7 +46,7 @@ export default function Leaderboard() {
     api<Leaderboards>('/api/leaderboard')
       .then((d) => {
         setData(d)
-        if (d.classes.length > 0) setTab(d.classes[0].id) // Default to the caller's own class.
+        if (d.categories.length > 0) setTab(d.categories[0].id) // Default to the caller's first category.
       })
       .catch((e) => setError(e.message))
   }, [])
@@ -54,16 +54,16 @@ export default function Leaderboard() {
   if (error) return <ErrorText message={error} />
   if (!data) return <Spinner />
 
-  const hasClasses = data.classes.length > 0
-  const activeClass = data.classes.find((c) => c.id === tab)
+  const hasCategories = data.categories.length > 0
+  const activeCategory = data.categories.find((c) => c.id === tab)
 
   return (
     <div className="space-y-3">
       <h1 className="text-2xl font-bold">🏆 Leaderboard</h1>
 
-      {hasClasses && (
+      {hasCategories && (
         <div className="flex flex-wrap rounded-xl bg-slate-200 p-1">
-          {data.classes.map((c) => (
+          {data.categories.map((c) => (
             <button
               key={c.id}
               type="button"
@@ -84,7 +84,7 @@ export default function Leaderboard() {
       )}
 
       <Board
-        entries={activeClass ? activeClass.entries : data.globalEntries}
+        entries={activeCategory ? activeCategory.entries : data.globalEntries}
         myName={user?.displayName}
       />
     </div>

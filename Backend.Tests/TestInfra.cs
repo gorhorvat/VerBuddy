@@ -75,7 +75,7 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         using var scope = Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         await db.Database.EnsureDeletedAsync();
-        await DbSeeder.SeedAsync( // Migrates, then seeds roles + accounts + sample game.
+        await DbSeeder.SeedAsync( // Migrates, then seeds roles + accounts + sample assignment.
             db,
             scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>(),
             scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>(),

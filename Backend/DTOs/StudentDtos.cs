@@ -5,13 +5,13 @@ namespace Backend.DTOs;
 
 // ─── Student portal payloads: pseudonymous + answer-key-free ──────────────
 
-public sealed record StudentGameSummaryDto(
+public sealed record StudentAssignmentSummaryDto(
     int Id,
     string Title,
     string? Description,
-    GameType GameType,
-    /// <summary>Active = playable now; Closed = past game (read-only).</summary>
-    GameState State,
+    AssignmentType AssignmentType,
+    /// <summary>Active = playable now; Closed = past assignment (read-only).</summary>
+    AssignmentState State,
     int? TimeLimitSeconds,
     int XpReward,
     int QuestionCount,
@@ -36,7 +36,7 @@ public sealed record StartAttemptResponse(
     int AttemptId,
     DateTime StartedAtUtc,
     int? TimeLimitSeconds,
-    /// <summary>Null for untimed games; the frontend counts down toward this.</summary>
+    /// <summary>Null for untimed assignments; the frontend counts down toward this.</summary>
     DateTime? DeadlineUtc,
     List<StudentQuestionDto> Questions);
 
@@ -56,13 +56,13 @@ public sealed record AttemptResultDto(
 /// <summary>Leaderboard row — DisplayName and XP only, never PII (GDPR).</summary>
 public sealed record LeaderboardEntryDto(int Rank, string DisplayName, int TotalXp);
 
-/// <summary>One class (category) board: active students in that class, ranked by XP.</summary>
-public sealed record ClassBoardDto(int Id, string Name, List<LeaderboardEntryDto> Entries);
+/// <summary>One category board: active students in that category, ranked by XP.</summary>
+public sealed record CategoryBoardDto(int Id, string Name, List<LeaderboardEntryDto> Entries);
 
 /// <summary>
-/// One board per class the caller belongs to (empty for admins or students with
-/// no classes) plus the global board across all students.
+/// One board per category the caller belongs to (empty for admins or students with
+/// no categories) plus the global board across all students.
 /// </summary>
 public sealed record LeaderboardResponse(
-    List<ClassBoardDto> Classes,
+    List<CategoryBoardDto> Categories,
     List<LeaderboardEntryDto> GlobalEntries);

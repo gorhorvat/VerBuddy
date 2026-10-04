@@ -1,4 +1,4 @@
-import type { AnswerBreakdown, GameType } from '../api'
+import type { AnswerBreakdown, AssignmentType } from '../api'
 
 // Renders one graded answer: the student's response against the correct one.
 // contentJson here is the FULL content including the answer key, so this
@@ -106,7 +106,7 @@ function FillInTheBlanksAnswer({ b }: { b: AnswerBreakdown }) {
   )
 }
 
-function WordMatchingAnswer({ b }: { b: AnswerBreakdown }) {
+function MatchingAnswer({ b }: { b: AnswerBreakdown }) {
   const { pairs } = JSON.parse(b.contentJson) as { pairs: { key: string; value: string }[] }
   const matches = (b.answer as { matches?: Record<string, string> } | null)?.matches ?? {}
 
@@ -128,15 +128,15 @@ function WordMatchingAnswer({ b }: { b: AnswerBreakdown }) {
   )
 }
 
-export default function AnswerView({ gameType, breakdown }: { gameType: GameType; breakdown: AnswerBreakdown }) {
-  switch (gameType) {
+export default function AnswerView({ assignmentType, breakdown }: { assignmentType: AssignmentType; breakdown: AnswerBreakdown }) {
+  switch (assignmentType) {
     case 'SingleChoice':
       return <SingleChoiceAnswer b={breakdown} />
     case 'MultipleChoice':
       return <MultipleChoiceAnswer b={breakdown} />
     case 'FillInTheBlanks':
       return <FillInTheBlanksAnswer b={breakdown} />
-    case 'WordMatching':
-      return <WordMatchingAnswer b={breakdown} />
+    case 'Matching':
+      return <MatchingAnswer b={breakdown} />
   }
 }
