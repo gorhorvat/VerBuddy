@@ -84,7 +84,7 @@ export default function StudentDashboard() {
 
   return (
     <div className="space-y-3">
-      <h1 className="text-2xl font-bold">📝 Current assignments</h1>
+      <h1 className="text-2xl font-bold">📋 Current assignments</h1>
       {current.length === 0 && (
         <Card>
           <p className="text-sm text-slate-500">No active assignments right now. Check back later!</p>

@@ -106,7 +106,7 @@ export default function TeacherAssignments() {
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold">📝 Assignments</h1>
+        <h1 className="text-2xl font-bold">📋 Assignments</h1>
         <div className="flex gap-3">
           <Button variant="secondary" onClick={() => setShowCategories(true)}>
             📁 Categories
@@ -218,7 +218,7 @@ export default function TeacherAssignments() {
                   <p className="text-xs text-slate-500">
                     {assignmentTypeLabels[g.assignmentType]} · {g.questionCount} question{g.questionCount === 1 ? '' : 's'} ·{' '}
                     {g.timeLimitSeconds ? `${g.timeLimitSeconds}s limit` : 'untimed'} · ⭐ {g.xpReward} XP
-                    {g.requireFeedback && ' · 📝 manual grading'}
+                    {g.requireFeedback && ' · ✍️ manual grading'}
                   </p>
                 </div>
                 <Badge value={g.state} />

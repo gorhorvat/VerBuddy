@@ -21,15 +21,15 @@ export default function Layout() {
 
   const tabs = isAdmin
     ? [
-        { to: '/teacher/assignments', label: 'Assignments', icon: '🎲' },
-        { to: '/teacher/reviews', label: 'Reviews', icon: '📝' },
+        { to: '/teacher/assignments', label: 'Assignments', icon: '📋' },
+        { to: '/teacher/reviews', label: 'Reviews', icon: '✍️' },
         { to: '/teacher/students', label: 'Students', icon: '👥' },
         ...(isSuperAdmin ? [{ to: '/superadmin/admins', label: 'Admins', icon: '🛡️' }] : []),
         { to: '/teacher/rewards', label: 'Rewards', icon: '🎁' },
         { to: '/leaderboard', label: 'Ranks', icon: '🏆' },
       ]
     : [
-        { to: '/assignments', label: 'Assignments', icon: '🎲' },
+        { to: '/assignments', label: 'Assignments', icon: '📋' },
         { to: '/rewards', label: 'Rewards', icon: '🎁' },
         { to: '/leaderboard', label: 'Ranks', icon: '🏆' },
       ]
