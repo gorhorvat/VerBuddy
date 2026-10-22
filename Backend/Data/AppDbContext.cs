@@ -13,6 +13,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<Reward> Rewards => Set<Reward>();
     public DbSet<RewardApplication> RewardApplications => Set<RewardApplication>();
+    public DbSet<SavepointData> SavepointData => Set<SavepointData>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
