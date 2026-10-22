@@ -59,6 +59,21 @@ public class SavepointTests(ApiFactory factory)
     }
 
     [Fact]
+    public async Task State_IsSentCompressed_WhenAccepted()
+    {
+        using var admin = await factory.SuperAdminClientAsync();
+        var rev = await CurrentRevAsync(admin);
+        (await admin.PutAsJsonAsync("/api/savepoint/state",
+            new { baseRev = rev, version = 4, state = State("compressed") }, Json)).EnsureSuccessStatusCode();
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/api/savepoint/state");
+        request.Headers.AcceptEncoding.ParseAdd("gzip");
+        using var response = await admin.SendAsync(request);
+        response.EnsureSuccessStatusCode();
+        Assert.Contains("gzip", response.Content.Headers.ContentEncoding);
+    }
+
+    [Fact]
     public async Task InvalidState_IsRejected()
     {
         using var admin = await factory.SuperAdminClientAsync();
