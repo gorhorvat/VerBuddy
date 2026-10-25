@@ -83,15 +83,41 @@ public class SavepointTests(ApiFactory factory)
     }
 
     [Fact]
-    public async Task OnlySuperAdmin_HasAccess()
+    public async Task Students_AndAnonymous_HaveNoAccess()
     {
         using var anonymous = factory.CreateClient();
         Assert.Equal(HttpStatusCode.Unauthorized, (await anonymous.GetAsync("/api/savepoint/state")).StatusCode);
 
         using var teacher = await factory.TeacherClientAsync();
-        Assert.Equal(HttpStatusCode.Forbidden, (await teacher.GetAsync("/api/savepoint/state")).StatusCode);
-        var write = await teacher.PutAsJsonAsync("/api/savepoint/state",
+        var student = await factory.CreateActivatedStudentAsync(teacher);
+        var auth = await factory.LoginAsync(student.Username, student.Password);
+        using var studentClient = factory.ClientWithToken(auth.Token);
+        Assert.Equal(HttpStatusCode.Forbidden, (await studentClient.GetAsync("/api/savepoint/state")).StatusCode);
+        var write = await studentClient.PutAsJsonAsync("/api/savepoint/state",
             new { baseRev = 0, version = 4, state = State("intruder") }, Json);
         Assert.Equal(HttpStatusCode.Forbidden, write.StatusCode);
+    }
+
+    [Fact]
+    public async Task Admins_EachGetTheirOwnState()
+    {
+        using var admin = await factory.SuperAdminClientAsync();
+        using var teacher = await factory.TeacherClientAsync();
+
+        var adminRev = await CurrentRevAsync(admin);
+        (await admin.PutAsJsonAsync("/api/savepoint/state",
+            new { baseRev = adminRev, version = 4, state = State("owner-game") }, Json)).EnsureSuccessStatusCode();
+
+        var teacherRev = await CurrentRevAsync(teacher);
+        (await teacher.PutAsJsonAsync("/api/savepoint/state",
+            new { baseRev = teacherRev, version = 4, state = State("teacher-game") }, Json)).EnsureSuccessStatusCode();
+
+        // Neither save touched the other account's data.
+        using var mine = JsonDocument.Parse(await admin.GetStringAsync("/api/savepoint/state"));
+        Assert.Equal("owner-game",
+            mine.RootElement.GetProperty("state").GetProperty("entries")[0].GetProperty("gameId").GetString());
+        using var theirs = JsonDocument.Parse(await teacher.GetStringAsync("/api/savepoint/state"));
+        Assert.Equal("teacher-game",
+            theirs.RootElement.GetProperty("state").GetProperty("entries")[0].GetProperty("gameId").GetString());
     }
 }

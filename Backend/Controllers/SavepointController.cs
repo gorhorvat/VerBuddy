@@ -11,14 +11,15 @@ namespace Backend.Controllers;
 
 /// <summary>
 /// Storage for Savepoint, the owner's game-library app. Savepoint's server
-/// logs in through /api/auth/login and calls these with the SuperAdmin's
-/// token. Every save carries the rev it is based on; a save from an
+/// logs in through /api/auth/login and calls these with the signed-in admin's
+/// token (SuperAdmin or Admin; students can't). Each account has its own row,
+/// so admins never see each other's data. Every save carries the rev it is based on; a save from an
 /// out-of-date copy (another device saved since) gets 409 instead of
 /// overwriting newer data.
 /// </summary>
 [ApiController]
 [Route("api/savepoint")]
-[Authorize(Roles = AppRoles.SuperAdmin)]
+[Authorize(Roles = AppRoles.AdminOrSuperAdmin)]
 public class SavepointController(AppDbContext db) : ControllerBase
 {
     private string CallerId => User.FindFirstValue(ClaimTypes.NameIdentifier)!;
