@@ -305,30 +305,6 @@ namespace Backend.Migrations
                     b.ToTable("RewardApplications");
                 });
 
-            modelBuilder.Entity("Backend.Models.SavepointData", b =>
-                {
-                    b.Property<string>("UserId")
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<int>("Rev")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("SavedAtUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("StateJson")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("Version")
-                        .HasColumnType("int");
-
-                    b.HasKey("UserId");
-
-                    b.ToTable("SavepointData");
-                });
-
             modelBuilder.Entity("Backend.Models.StudentAttempt", b =>
                 {
                     b.Property<int>("Id")

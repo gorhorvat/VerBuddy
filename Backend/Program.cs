@@ -51,10 +51,6 @@ builder.Services.AddAuthorization();
 
 builder.Services.AddScoped<ITokenService, TokenService>();
 
-// Savepoint's saved state is a few hundred KB of JSON; compressed it's about a
-// quarter. Only used for /api/savepoint (see below), never the auth endpoints.
-builder.Services.AddResponseCompression(options => options.EnableForHttps = true);
-
 builder.Services.AddScoped<AccountLifecycleService>();
 // Real SMTP when Email:Smtp:Host is configured; otherwise the dev transport
 // writes emails as .txt files into Email:PickupDirectory.
@@ -105,10 +101,6 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
-app.UseWhen(
-    context => context.Request.Path.StartsWithSegments("/api/savepoint"),
-    branch => branch.UseResponseCompression());
 
 app.UseCors(FrontendCors);
 
